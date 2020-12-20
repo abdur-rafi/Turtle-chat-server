@@ -51,7 +51,7 @@ var sess = {
 //   sess.secure = true // serve secure cookies
 // }
 app.set('trust proxy', 1) 
-var session = cookieSession(sess);
+var session = cookieSession({...sess, sameSite:"none"});
 app.use(session);
 app.use(passport.initialize()); 
 app.use(passport.session());
