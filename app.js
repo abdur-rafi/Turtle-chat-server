@@ -41,14 +41,16 @@ var sess = {
   name : 'turtle-chat-01',
   maxAge: 4 * 1000 * 60 * 60 ,
   expires: 4 * 1000 * 60 * 60,
-  keys : ['lN9U-6f%yXoi2|zayO!5|^Z8','aV67cxJLQjUmbivK']
+  keys : ['lN9U-6f%yXoi2|zayO!5|^Z8','aV67cxJLQjUmbivK'],
+  secure:true
   // secret : "Keyboard Cat"
 }
  
-if (app.get('env') === 'production') {
-  app.set('trust proxy', 1) // trust first proxy
-  sess.secure = true // serve secure cookies
-}
+// if (app.get('env') === 'production') {
+//   app.set('trust proxy', 1) // trust first proxy
+//   sess.secure = true // serve secure cookies
+// }
+app.set('trust proxy', 1) 
 var session = cookieSession(sess);
 app.use(session);
 app.use(passport.initialize()); 
