@@ -1,0 +1,77 @@
+var connect = require('./sql');
+var socketList = require('./sockets');
+function socket_io(io){
+    io.on('connection',(socket)=>{
+        let user_id = -1, groups = [];
+        try{
+            user_id = socket.handshake.session.passport.user;
+        }
+        catch(err){console.log(err);return;}
+        socketList.sockets[user_id] = socket.id;
+        console.log("io",socketList);
+        q = 'SELECT group_id,users.user_id FROM members JOIN users ON members.name_user_id=users.user_id WHERE members.user_id = ?';
+        connect.query(q,[user_id],(err,results) => {
+            if(err){console.log(err);return;}
+            groups = results;
+        })
+
+        socket.on('message-seen',(data) =>{
+            let q = 'UPDATE members SET lastSeen = lastMessage WHERE (user_id,group_id)=(?,?)'
+            connect.query(q,[user_id,data.group_id],(err,result)=>{
+                if(err){console.log(err);}
+                q = `SELECT lastSeen,name_user_id FROM members WHERE (user_id,group_id)=(?,?)`
+                connect.query(q,[user_id,data.group_id],(err,results)=>{
+                    if(err){console.log(err);return;}
+                    if(results.length === 0) return;
+                    io.to(socketList.sockets[results[0]['name_user_id']]).emit('update-seen',{group_id:data.group_id,lastSeen:results[0]['lastSeen']});
+                })
+            })
+        })
+
+        socket.on('voice-call',(data)=>{
+            console.log(data);
+            if(groups.some(group => group.group_id === data.group_id && group.user_id === data.user_id)){
+                if(socketList.sockets[data.user_id]){
+                    io.to(socketList.sockets[data.user_id]).emit('voice-call-request',{user_id:user_id,group_id:data.group_id,peerId:data.peerId});
+                }
+            }
+        })
+
+        socket.on('voice-call-request-accept',data=>{
+            if(socketList.sockets[data.user_id]){
+                io.to(socketList.sockets[data.user_id]).emit('call-receiver-id',{peerId:data.peerId,user_id:user_id});
+            }
+        })
+
+        socket.on('answer',data=>{
+            io.to(socketList.sockets[data.receiver]).emit('answer',{answer:data.answer})
+        })
+
+        socket.on('offer',(data)=>{
+            io.to(socketList.sockets[data.receiver]).emit('offer',{offer:data.offer,sender:user_id})
+        })
+        socket.on('icecandidate',data=>{
+            console.log("icecand",data);
+            io.to(socketList.sockets[data.receiver]).emit('icecandidate',{candidate:data.candidate})
+        })
+        socket.on('close-call',data=>{
+            if(socketList.sockets[data.receiver]){
+                io.to(socketList.sockets[data.receiver]).emit('close-call',{sender:user_id});
+            }
+        })
+        socket.on('disconnect',(socket) => {
+            delete socketList.sockets[user_id];
+            console.log("disconnected");
+            groups.forEach(group=>{
+                console.log(group)
+                if(socketList.sockets[group.user_id]){
+                    console.log(group);
+                    io.to(socketList.sockets[group.user_id]).emit('new-inactive',{user_id:user_id})
+                }
+            })
+        })
+    })
+}
+
+
+module.exports = socket_io;
