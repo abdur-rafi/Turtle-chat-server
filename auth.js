@@ -1,4 +1,4 @@
-let url = 'https://turtle-chat-01.herokuapp.com';
+let url = 'https://turtle-chat-server.herokuapp.com';
 // url = 'http://localhost:3000';
 const connect = require("./sql");
 const axios = require('axios');
