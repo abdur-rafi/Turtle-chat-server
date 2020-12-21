@@ -2,8 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 
-const whitelist = ['http://localhost:3001', 'https://localhost:3443','http://localhost:3000','https://pensive-varahamihira-0361fc.netlify.app',
-'http://83bc8b650b56.ngrok.io','https://gallant-bhabha-dc6d43.netlify.app','http://192.168.0.102:3001','https://serene-mclean-d7b035.netlify.app'];
+const whitelist = ['http://localhost:3001','http://localhost:3000','http://192.168.0.102:3001','https://serene-mclean-d7b035.netlify.app','https://turtle-chat.netlify.app'];
 var corsOptionsDelegate = (req, callback) => {
 
     var corsOptions;
