@@ -1,3 +1,4 @@
+require('dotenv').config()
 var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
@@ -6,7 +7,6 @@ var logger = require('morgan');
 var cookieSession = require('cookie-session');
 var passport = require('passport');
 var socketio = require("socket.io");
-require('dotenv').config()
 // routes
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
@@ -51,7 +51,9 @@ var sess = {
 var cookieConfig = {
   ...sess
 }
-if(!process.env.PRODUCTION !== 'TRUE'){
+console.log(process.env.PRODUCTION);
+if(process.env.PRODUCTION !== 'TRUE'){
+  console.log('secured');
   app.set('trust proxy', 1);
   cookieConfig = {
     ...cookieConfig,
