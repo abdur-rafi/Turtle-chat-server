@@ -19,18 +19,6 @@ var googleReactRouter = require('./routes/google-react');
 
 console.log(process.env.DATABASE_URL);
 
-const { Pool, Client } = require('pg')
-const pool = new Pool({
-  connectionString:process.env.DATABASE_URL,
-  ssl:{
-    rejectUnauthorized : false
-  }
-})
-pool.query(' SELECT current_database()', (err, res) => {
-  console.log(err, res)
-  // pool.end()
-})
-
 
 var connect = require('./sql');
 const auth = require('./auth');

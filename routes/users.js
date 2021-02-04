@@ -21,10 +21,11 @@ router.route('/')
 router.route('/:username')
 .options(cors.corsWithOptions,(req,res) => {res.sendStatus(200);})
 .get(cors.corsWithOptions,auth.isAuthenticated, function(req, res, next) {
-  let q = 'SELECT users.username,users.user_id,images.image FROM users JOIN images ON users.user_id=images.user_id AND users.user_id != ? AND users.username LIKE ?'
+  let q = 'SELECT users.username,users.user_id,images.image FROM users INNER JOIN images ON users.user_id=images.user_id AND users.user_id != $1 AND users.username iLIKE $2'
   connect.query(q,[req.user.user_id,req.params.username+'%'],(err,results)=>{
-    if(err){console.log(err);return next(err)}
-    res.status(200).json(results);
+    if(err){console.log( err);return next(err)}
+    // console.log(results);
+    res.status(200).json(results.rows);
   })
 });
 

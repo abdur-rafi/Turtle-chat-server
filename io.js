@@ -9,21 +9,21 @@ function socket_io(io){
         catch(err){console.log(err);return;}
         socketList.sockets[user_id] = socket.id;
         console.log("io",socketList);
-        q = 'SELECT group_id,users.user_id FROM members JOIN users ON members.name_user_id=users.user_id WHERE members.user_id = ?';
+        q = 'SELECT group_id,users.user_id FROM members JOIN users ON members.name_user_id=users.user_id WHERE members.user_id = $1';
         connect.query(q,[user_id],(err,results) => {
             if(err){console.log(err);return;}
-            groups = results;
+            groups = results.rows;
         })
 
         socket.on('message-seen',(data) =>{
-            let q = 'UPDATE members SET lastSeen = lastMessage WHERE (user_id,group_id)=(?,?)'
+            let q = 'UPDATE members SET lastSeen = lastMessage WHERE (user_id,group_id)=($1,$2)'
             connect.query(q,[user_id,data.group_id],(err,result)=>{
                 if(err){console.log(err);}
-                q = `SELECT lastSeen,name_user_id FROM members WHERE (user_id,group_id)=(?,?)`
+                q = `SELECT lastSeen,name_user_id FROM members WHERE (user_id,group_id)=($1,$2)`
                 connect.query(q,[user_id,data.group_id],(err,results)=>{
                     if(err){console.log(err);return;}
-                    if(results.length === 0) return;
-                    io.to(socketList.sockets[results[0]['name_user_id']]).emit('update-seen',{group_id:data.group_id,lastSeen:results[0]['lastSeen']});
+                    if(results.rows.length === 0) return;
+                    io.to(socketList.sockets[results.rows[0]['name_user_id']]).emit('update-seen',{group_id:data.group_id,lastSeen:results.rows[0]['lastSeen']});
                 })
             })
         })
