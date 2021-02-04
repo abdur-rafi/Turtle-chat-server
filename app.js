@@ -17,7 +17,7 @@ var facebookRouter = require('./routes/facebook');
 var facebookReactRouter = require('./routes/facebook-react');
 var googleReactRouter = require('./routes/google-react');
 
-console.log(process.env.DATABASE_URL);
+// console.log(process.env.DATABASE_URL);
 
 
 var connect = require('./sql');
@@ -44,7 +44,7 @@ var sess = {
   maxAge: 4 * 1000 * 60 * 60 ,
   expires: 4 * 1000 * 60 * 60,
   keys : ['lN9U-6f%yXoi2|zayO!5|^Z8','aV67cxJLQjUmbivK'],
-  // secure:true // uncomment for prod
+  secure:true // uncomment for prod
   // secret : "Keyboard Cat"
 }
  
@@ -52,8 +52,8 @@ var sess = {
 //   app.set('trust proxy', 1) // trust first proxy
 //   sess.secure = true // serve secure cookies
 // }
-// app.set('trust proxy', 1)  // uncomment for prod
-var session = cookieSession({...sess,}) // sameSite:"none"}); // uncomment for prod
+app.set('trust proxy', 1)  // uncomment for prod
+var session = cookieSession({...sess, sameSite:"none"}); // uncomment for prod
 app.use(session);
 app.use(passport.initialize()); 
 app.use(passport.session());

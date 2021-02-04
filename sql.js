@@ -1,12 +1,12 @@
 const mysql = require('mysql');
 const { Pool, Client } = require('pg')
 const pool = new Pool({
-  // connectionString:process.env.DATABASE_URL,
-  user:'yeicnhjbsrlssw',
-  host:'ec2-52-22-135-159.compute-1.amazonaws.com',
-  database:'dfc60jjvk97shb',
-  port:5432,
-  password:'38cc145125a90e996be6bf481f9ef10d6e844ea5782fbbc08e723ada08e6fb8c',
+  connectionString:process.env.DATABASE_URL,
+  // user:'yeicnhjbsrlssw',
+  // host:'ec2-52-22-135-159.compute-1.amazonaws.com',
+  // database:'dfc60jjvk97shb',
+  // port:5432,
+  // password:'38cc145125a90e996be6bf481f9ef10d6e844ea5782fbbc08e723ada08e6fb8c',
   ssl:{
     rejectUnauthorized : false
   }
