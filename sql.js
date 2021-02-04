@@ -9,7 +9,8 @@ const pool = new Pool({
   // password:'38cc145125a90e996be6bf481f9ef10d6e844ea5782fbbc08e723ada08e6fb8c',
   ssl:{
     rejectUnauthorized : false
-  }
+  },
+  max : 18
 })
 // pool.query(' SELECT current_database()', (err, res) => {
 //   console.log(err, res)
