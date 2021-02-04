@@ -6,6 +6,7 @@ var logger = require('morgan');
 var cookieSession = require('cookie-session');
 var passport = require('passport');
 var socketio = require("socket.io");
+require('dotenv').config()
 // routes
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
@@ -43,17 +44,23 @@ var sess = {
   name : 'turtle-chat-01',
   maxAge: 4 * 1000 * 60 * 60 ,
   expires: 4 * 1000 * 60 * 60,
-  keys : ['lN9U-6f%yXoi2|zayO!5|^Z8','aV67cxJLQjUmbivK'],
-  secure:true // uncomment for prod
-  // secret : "Keyboard Cat"
+  keys : ['lN9U-6f%yXoi2|zayO!5|^Z8','aV67cxJLQjUmbivK']
 }
+
  
-// if (app.get('env') === 'production') {
-//   app.set('trust proxy', 1) // trust first proxy
-//   sess.secure = true // serve secure cookies
-// }
-app.set('trust proxy', 1)  // uncomment for prod
-var session = cookieSession({...sess, sameSite:"none"}); // uncomment for prod
+var cookieConfig = {
+  ...sess
+}
+if(!process.env.PRODUCTION !== 'TRUE'){
+  app.set('trust proxy', 1);
+  cookieConfig = {
+    ...cookieConfig,
+    sameSite : "none",
+    secure:true
+  }
+}
+
+var session = cookieSession(cookieConfig); 
 app.use(session);
 app.use(passport.initialize()); 
 app.use(passport.session());
@@ -103,5 +110,8 @@ app.use(function(err, req, res, next) {
   res.status(err.status || 500);
   res.render('error');
 });
+
+// console.log(process.app.get('env'));
+console.log(process.env.PRODUCTION === 'TRUE');
 
 module.exports = app;
