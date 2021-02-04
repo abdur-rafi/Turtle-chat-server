@@ -1,7 +1,8 @@
 require('dotenv').config();
 let url = 'https://turtle-chat-server.herokuapp.com';
-
-// url = 'http://localhost:3000';
+if(process.env.PRODUCTION === 'TRUE'){
+  url = 'http://localhost:3000';
+}
 const connect = require("./sql");
 const axios = require('axios');
 const passport = require('passport'),
