@@ -21,9 +21,11 @@ function socket_io(io){
                 if(err){console.log(err);}
                 q = `SELECT lastSeen,name_user_id FROM members WHERE (user_id,group_id)=($1,$2)`
                 connect.query(q,[user_id,data.group_id],(err,results)=>{
+                    console.log(results.rows);
                     if(err){console.log(err);return;}
                     if(results.rows.length === 0) return;
-                    io.to(socketList.sockets[results.rows[0]['name_user_id']]).emit('update-seen',{group_id:data.group_id,lastSeen:results.rows[0]['lastSeen']});
+                    console.log({group_id:data.group_id,lastSeen:results.rows[0]['lastseen']});
+                    io.to(socketList.sockets[results.rows[0]['name_user_id']]).emit('update-seen',{group_id:data.group_id,lastSeen:results.rows[0]['lastseen']});
                 })
             })
         })
@@ -59,6 +61,17 @@ function socket_io(io){
                 io.to(socketList.sockets[data.receiver]).emit('close-call',{sender:user_id});
             }
         })
+
+        socket.on('typing',data=>{
+            for(i = 0; i < groups.length; ++i){
+                if(groups[i].group_id === data.group_id){
+                    console.log(groups[i]);
+                    io.to(socketList.sockets[groups[i].user_id]).emit('typing',{typer:user_id,group_id:data.group_id});
+                    break;
+                }
+            }
+        });
+
         socket.on('disconnect',(socket) => {
             delete socketList.sockets[user_id];
             console.log("disconnected");
