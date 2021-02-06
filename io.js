@@ -50,7 +50,8 @@ function socket_io(io){
         })
 
         socket.on('offer',(data)=>{
-            io.to(socketList.sockets[data.receiver]).emit('offer',{offer:data.offer,sender:user_id})
+            // console.log(data);
+            io.to(socketList.sockets[data.receiver]).emit('offer',{offer:data.offer,sender:user_id,video:data.video})
         })
         socket.on('icecandidate',data=>{
             console.log("icecand",data);
