@@ -3,11 +3,13 @@ var router = express.Router();
 var connect = require('../sql');
 var auth = require('../auth');
 var cors = require('../cors');
+var socketList = require('../sockets');
+var newGroups = require('../newgroups');
 
 router.route('/')
 .options(cors.corsWithOptions,(req,res) => {res.sendStatus(200);})
 .get(cors.corsWithOptions,auth.isAuthenticated,(req,res,next)=>{
-  let q = `SELECT requests.group_id,users.username as group_user_name,images.image,messages.message
+  let q = `SELECT requests.group_id,requests.from_user_id as name_user_id,users.username as group_user_name,images.image,messages.message
   FROM
     requests
   JOIN users ON requests.from_user_id=users.user_id
@@ -112,7 +114,24 @@ router.route('/accept/:group_id')
             q = 'INSERT INTO members(user_id,group_id,name_user_id) VALUES($1,$2,$3)'
             connect.query(q,[req.user.user_id,req.params.group_id,results.rows[0]['from_user_id']],(err,result)=>{
                 if(err){console.log(err);return next(err)}
-                res.status(200).json({message:"success",group_id: parseInt(req.params.group_id)})
+                if(newGroups[req.user.user_id]) newGroups[req.user.user_id](req.params.group_id,results.rows[0]['from_user_id']);
+                // if(newGroups[req.user.user_id]) newGroups[req.user.user_id] = [...newGroups[req.user.user_id],req.params.group_id]
+                // else newGroups[req.user.user_id] = [req.params.group_id];  
+                res.status(200).json({
+                  message:"success",
+                  group_id: parseInt(req.params.group_id),
+                  active : socketList.sockets[results.rows[0]['from_user_id']] ? true : false
+                })
+                console.log("accept func");
+                console.log(socketList.sockets[results.rows[0]['from_user_id']] ? true : false);
+                console.log(socketList.sockets[results.rows[0]['from_user_id']]);
+                if(socketList.sockets[results.rows[0]['from_user_id']]){
+                  req.io.to(socketList.sockets[results.rows[0]['from_user_id']]).emit('new-active',{user_id:req.user.user_id})
+                }
+                q = `UPDATE members SET req = 0 WHERE user_id = $1 AND name_user_id = $2`
+                connect.query(q,[results.rows[0]['from_user_id'],req.user.user_id],(err,result)=>{
+                  if(err){console.log(err);return next(err)}
+                })
             })
             q = 'DELETE FROM requests WHERE request_id=$1'
             connect.query(q,[req_id],(err,result)=>{

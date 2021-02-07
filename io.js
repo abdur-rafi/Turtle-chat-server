@@ -1,5 +1,6 @@
 var connect = require('./sql');
 var socketList = require('./sockets');
+var newGroups = require('./newgroups');
 function socket_io(io){
     io.on('connection',(socket)=>{
         let user_id = -1, groups = [];
@@ -7,6 +8,10 @@ function socket_io(io){
             user_id = socket.handshake.session.passport.user;
         }
         catch(err){console.log(err);return;}
+        newGroups[user_id] = (new_group,user_id)=>{
+            groups.push({group_id: new_group,user_id : user_id});
+        }
+        console.log(newGroups);
         socketList.sockets[user_id] = socket.id;
         console.log("io",socketList);
         q = 'SELECT group_id,users.user_id FROM members JOIN users ON members.name_user_id=users.user_id WHERE members.user_id = $1';
@@ -18,11 +23,11 @@ function socket_io(io){
         socket.on('message-seen',(data) =>{
             let q = 'UPDATE members SET lastSeen = lastMessage WHERE (user_id,group_id)=($1,$2)'
             connect.query(q,[user_id,data.group_id],(err,result)=>{
-                if(err){console.log(err);}
+                if(err){console.log("message-seen io",err); return;}
                 q = `SELECT lastSeen,name_user_id FROM members WHERE (user_id,group_id)=($1,$2)`
                 connect.query(q,[user_id,data.group_id],(err,results)=>{
-                    console.log(results.rows);
                     if(err){console.log(err);return;}
+                    console.log(results.rows);
                     if(results.rows.length === 0) return;
                     console.log({group_id:data.group_id,lastSeen:results.rows[0]['lastseen']});
                     io.to(socketList.sockets[results.rows[0]['name_user_id']]).emit('update-seen',{group_id:data.group_id,lastSeen:results.rows[0]['lastseen']});
@@ -74,8 +79,9 @@ function socket_io(io){
         });
 
         socket.on('disconnect',(socket) => {
+            console.log(groups);
             delete socketList.sockets[user_id];
-            console.log("disconnected");
+            console.log("disconnected",groups);
             groups.forEach(group=>{
                 console.log(group)
                 if(socketList.sockets[group.user_id]){

@@ -21,7 +21,13 @@ router.route('/')
 router.route('/:username')
 .options(cors.corsWithOptions,(req,res) => {res.sendStatus(200);})
 .get(cors.corsWithOptions,auth.isAuthenticated, function(req, res, next) {
-  let q = 'SELECT users.username,users.user_id,images.image FROM users INNER JOIN images ON users.user_id=images.user_id AND users.user_id != $1 AND users.username iLIKE $2'
+  let q = `SELECT users.username,users.user_id,images.image FROM users 
+  INNER JOIN images 
+  ON users.user_id=images.user_id 
+  WHERE NOT EXISTS(SELECT * FROM friends WHERE
+              users.user_id = friends.friend_id AND friends.user_id = $1) 
+              AND users.user_id != $1 AND users.username iLIKE $2;
+  `
   connect.query(q,[req.user.user_id,req.params.username+'%'],(err,results)=>{
     if(err){console.log( err);return next(err)}
     // console.log(results);

@@ -6,6 +6,7 @@ var passport = require('passport');
 var auth = require('../auth');
 var cors = require('../cors');
 var socketList = require('../sockets');
+var newGroups = require('../newgroups');
 
 router.route('/')
 .options(cors.corsWithOptions,(req,res) => {res.sendStatus(200);})
@@ -14,7 +15,10 @@ router.route('/')
     console.log(process.env.PORT);
     let  q;
     q = `SELECT 
-            members.group_id,members.lastSeen as userlastSeen,members.lastMessage as lastMessageId,members.name_user_id,members2.lastSeen,users.username as group_user_name,mgroups.name as group_name ,mgroups.last_time,
+            members.group_id,members.lastSeen as userlastSeen,members.lastMessage as lastMessageId,
+            members.name_user_id,members.req,
+            members2.lastSeen,users.username as group_user_name,
+            mgroups.name as group_name ,mgroups.last_time,
             images.image,messages.message,messages.user_id as last_message_user_id 
         FROM 
             members members
@@ -28,7 +32,8 @@ router.route('/')
             images ON images.user_id = users.user_id
         LEFT JOIN
             messages ON messages.message_id=members.lastMessage
-        WHERE members.user_id = $1 ORDER BY mgroups.last_time DESC`
+        WHERE 
+            members.user_id = $1 ORDER BY mgroups.last_time DESC`
     connect.query(q,[user_id],(err,results) =>{
         if(err){console.log(err);return next(err);}
         q = `SELECT image FROM images WHERE user_id=$1`
@@ -41,15 +46,27 @@ router.route('/')
             let i = 0;
             for(i = 0;i < results.rows.length;++i){
                 results.rows[i]['bold'] = false;
-                if(results.rows[i]['lastMessageId'] !== results.rows[i]['userlastSeen']) results.rows[i]['bold'] = true;
-                if(socketList.sockets[results.rows[i]['name_user_id']]){
+                if(results.rows[i]['lastMessageId'] !== results.rows[i]['userlastSeen']){
+                    results.rows[i]['bold'] = true;
+                }
+                if(!results.rows[i].req && socketList.sockets[results.rows[i]['name_user_id']]){
                     results.rows[i]['active'] = true;
-                    req.io.to(socketList.sockets[results.rows[i]['name_user_id']]).emit('new-active',{user_id:req.user.user_id});
+                    req.io.to(socketList.sockets[results.rows[i]['name_user_id']])
+                    .emit('new-active',{
+                        user_id:req.user.user_id
+                    });
                 }
                 else results.rows[i]['active'] = false;
             }
-            let user = {user_id:req.user.user_id,username:req.user.username,image:img}
-            res.status(200).json({groups:results.rows,user:user});
+            let user = {
+                user_id:req.user.user_id,
+                username:req.user.username,
+                image:img
+            }
+            res.status(200).json({
+                groups:results.rows,
+                user:user
+            });
         })
         
     })
@@ -71,13 +88,15 @@ router.route('/:group_id')
         group_id = parseInt(group_id);
         let q = 'INSERT INTO friends(user_id,friend_id,time) VALUES ($1,$2,NOW())'
         connect.query(q,[req.user.user_id,group_id],(err,results)=>{
+            if(err){console.log(err);return next(err)}
+            // console.log("inserted into friends");
             q = 'INSERT INTO mgroups(created_at) VALUES(NOW()) RETURNING group_id'
             connect.query(q,(err,results)=>{
                 if(err){console.log(err);return next(err)}
                 let created_group_id = results.rows[0].group_id;
-                q = 'INSERT INTO members(user_id,group_id,name_user_id) VALUES($1,$2,$3)'
+                q = 'INSERT INTO members(user_id,group_id,name_user_id,req) VALUES($1,$2,$3,1)'
                 connect.query(q,[user_id,created_group_id,group_id],(err,results)=>{
-                    if(err && err.errno === 1062){
+                    if(err && err.errno === '23505'){
                         q = 'DELETE FROM mgroups WHERE group_id = $1'
                         connect.query(q,[created_group_id],(err,results)=>{});
                         q = 'SELECT * FROM members WHERE user_id=$1 AND name_user_id= $2'
@@ -86,26 +105,35 @@ router.route('/:group_id')
                             created_group_id = results.rows[0]['group_id'];
                             q = 'INSERT INTO requests(to_user_id,from_user_id,group_id,sent_at) VALUES($1,$2,$3,NOW())';
                             connect.query(q,[group_id,user_id,created_group_id],(err,results)=>{
-                                if(err){console.log(err)}
+                                if(err){console.log("req insert error",err)}
                                 if(!err){
                                     q = 'SELECT * FROM images WHERE user_id=$1'
                                     connect.query(q,[req.user.user_id],(err,results)=>{
-                                        if(err){console.log(err);}
-                                        if(socketList.sockets[group_id]) req.io.to(socketList.sockets[group_id]).emit('new-request',{
-                                            group_id : created_group_id,group_user_name : req.user.username,image:results.rows[0]['image']
+                                        if(err){console.log("sel img error",err);}
+                                        if(socketList.sockets[group_id]) req.io.to(socketList.sockets[group_id])
+                                        .emit('new-request',{
+                                            group_id : created_group_id,
+                                            group_user_name : req.user.username,
+                                            name_user_id : req.user.user_id,
+                                            image:results.rows[0]['image']
                                         })
                                     })
                                 }
                                 q = `INSERT INTO messages(group_id,user_id,message,sent_at) VALUES($1,$2,$3,NOW()) RETURNING message_id`
                                 connect.query(q,[created_group_id, user_id,message],(err,results) => {
                                     if(err){console.log(err);return next(err)}
-                                    res.status(200).json({message : "message sent successfully",
-                                        group_id : created_group_id,request:req.params.group_id,sendingId:req.body.sendingId,message_id:results.rows[0].message_id});
+                                    res.status(200).json({
+                                        message : "message sent successfully",
+                                        group_id : created_group_id,
+                                        request:req.params.group_id,
+                                        sendingId:req.body.sendingId,
+                                        message_id:results.rows[0].message_id
+                                    });
                                     q = `UPDATE members SET lastMessage = $1 WHERE group_id = $2`
                                     connect.query(q,[results.rows[0].message_id,created_group_id],(err,results) => {
-                                        if(err){console.log(err);return}
-                                        q = `UPDATE members SET lastSeen=lastMessage WHERE user_id=$1 AND group_id=$2`
-                                        connect.query(q,[user_id,created_group_id],(err,results)=>{if(err){console.log(err)}})
+                                        if(err){console.log("update memnbers error",err);return}
+                                        q = `UPDATE members SET lastSeen=lastMessage WHERE user_id = $1 AND group_id = $2`
+                                        connect.query(q,[user_id,created_group_id],(err,results)=>{if(err){console.log("lastseen update error,",err)}})
                                     })
                                     
                                     q = 'UPDATE mgroups SET last_time = NOW() WHERE group_id = $1'
@@ -117,15 +145,23 @@ router.route('/:group_id')
                                     //     group_id : created_group_id,username : req.user.username,message : message,sent_at : Date.now(),
                                     //     message_id : results.insertId,user_id : user_id,request:req.params.group_id
                                     // })
-                                    if(socketList.sockets[group_id]) req.io.to(socketList.sockets[group_id]).emit('new-message',{
-                                        group_id : created_group_id,username : req.user.username,message : message,sent_at : Date.now(),
-                                        message_id : results.rows[0].message_id,user_id : user_id,request:true
+                                    if(socketList.sockets[group_id]) req.io.to(socketList.sockets[group_id])
+                                    .emit('new-message',{
+                                        group_id : created_group_id,
+                                        username : req.user.username,
+                                        message : message,
+                                        sent_at : Date.now(),
+                                        message_id : results.rows[0].message_id,
+                                        user_id : user_id,
+                                        request:true
                                     })
                                 })
                             })
                         })
                     }
                     else if(!err){
+                        
+                        if(newGroups[req.user.user_id]) newGroups[user_id](created_group_id,group_id);
                         q = 'INSERT INTO requests(to_user_id,from_user_id,group_id,sent_at) VALUES($1,$2,$3,NOW())';
                         connect.query(q,[group_id,user_id,created_group_id],(err,results)=>{
                             if(err){console.log(err);}
@@ -133,18 +169,26 @@ router.route('/:group_id')
                                 q = 'SELECT * FROM images WHERE user_id=$1'
                                 connect.query(q,[req.user.user_id],(err,results)=>{
                                     if(err){console.log(err);}
-                                    if(socketList.sockets[group_id]) req.io.to(socketList.sockets[group_id]).emit('new-request',{
-                                        group_id : created_group_id,group_user_name : req.user.username,image:results.rows[0]['image']
+                                    if(socketList.sockets[group_id]) req.io.to(socketList.sockets[group_id])
+                                    .emit('new-request',{
+                                        group_id : created_group_id,
+                                        group_user_name : req.user.username,
+                                        image:results.rows[0]['image']
                                     })
                                 })
                             }
                             q = `INSERT INTO messages(group_id,user_id,message,sent_at) VALUES($1,$2,$3,NOW()) RETURNING message_id`
                             connect.query(q,[created_group_id,user_id,message],(err,results) => {
                                 if(err){console.log(err);return next(err)}
-                                res.status(200).json({message : "message sent successfully",group_id : created_group_id,
-                                    request:req.params.group_id,sendingId:req.body.sendingId,message_id:results.rows[0].message_id});
+                                res.status(200).json({
+                                    message : "message sent successfully",
+                                    group_id : created_group_id,
+                                    request:req.params.group_id,
+                                    sendingId:req.body.sendingId,
+                                    message_id:results.rows[0].message_id
+                                });
                                 
-                                q = `UPDATE members SET lastMessage = $1 WHERE group_id = $1`
+                                q = `UPDATE members SET lastMessage = $1 WHERE group_id = $2`
                                 connect.query(q,[results.rows[0].message_id,created_group_id],(err,results) => {
                                     if(err){console.log(err);return;}
                                     q = `UPDATE members SET lastSeen=lastMessage WHERE user_id=$1 AND group_id=$2`
@@ -159,9 +203,15 @@ router.route('/:group_id')
                                 //     group_id : created_group_id,username : req.user.username,message : message,sent_at : Date.now(),
                                 //     message_id : results.insertId,user_id : user_id,request:req.params.group_id
                                 // })
-                                if(socketList.sockets[group_id]) req.io.to(socketList.sockets[group_id]).emit('new-message',{
-                                    group_id : created_group_id,username : req.user.username,message : message,sent_at : Date.now(),
-                                    message_id : results.rows[0].message_id,user_id : user_id,request:true
+                                if(socketList.sockets[group_id]) req.io.to(socketList.sockets[group_id])
+                                .emit('new-message',{
+                                    group_id : created_group_id,
+                                    username : req.user.username,
+                                    message : message,
+                                    sent_at : Date.now(),
+                                    message_id : results.rows[0].message_id,
+                                    user_id : user_id,
+                                    request:true
                                 })
                             })
                         })
@@ -185,12 +235,18 @@ router.route('/:group_id')
                 if(err){console.log(err);return next(err);}
                 res.status(200).json({
                     message : "message sent successfully",
-                    sendingId:req.body.sendingId,message_id:results.rows[0].message_id,group_id:group_id
+                    sendingId:req.body.sendingId,
+                    message_id:results.rows[0].message_id,
+                    group_id:group_id
                 })
                 
                 if(socketList.sockets[to]) req.io.to(socketList.sockets[to]).emit('new-message',{
-                    group_id : group_id,username : req.user.username,message : message,sent_at : Date.now(),
-                    message_id : results.rows[0].message_id,user_id : user_id
+                    group_id : group_id,
+                    username : req.user.username,
+                    message : message,
+                    sent_at : Date.now(),
+                    message_id : results.rows[0].message_id,
+                    user_id : user_id
                 })
                 
                 q = `UPDATE members SET lastMessage = $1 WHERE group_id = $2`
