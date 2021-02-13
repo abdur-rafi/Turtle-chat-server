@@ -26,7 +26,7 @@ router.route('/:username')
   ON users.user_id=images.user_id 
   WHERE NOT EXISTS(SELECT * FROM friends WHERE
               users.user_id = friends.friend_id AND friends.user_id = $1) 
-              AND users.user_id != $1 AND users.username iLIKE $2;
+              AND users.user_id != $1  AND users.username iLIKE $2 AND users.type = 0;
   `
   connect.query(q,[req.user.user_id,req.params.username+'%'],(err,results)=>{
     if(err){console.log( err);return next(err)}

@@ -7,7 +7,8 @@ const connect = require("./sql");
 const axios = require('axios');
 const passport = require('passport'),
     GoogleStrategy = require('passport-google-oauth20').Strategy,
-    FacebookStrategy = require('passport-facebook').Strategy;
+    FacebookStrategy = require('passport-facebook').Strategy,
+    format = require('pg-format');
 
 passport.use('google-signup', new GoogleStrategy({
   clientID : "564520619729-u3bqt4oeoj5radm6sv36j3hqk2puq9i3.apps.googleusercontent.com",
@@ -69,7 +70,8 @@ passport.use('google-signup-react', new GoogleStrategy({
     profile.name.givenName,
     profile.name.familyName
   ]
-  let q = 'INSERT INTO users(google_id,username,email,firstname,lastname,created_at) VALUES ($1,$2,$3,$4,$5,NOW()) RETURNING user_id'
+  let q = `INSERT INTO users(google_id,username,email,firstname,lastname,created_at) 
+      VALUES ($1,$2,$3,$4,$5,NOW()) RETURNING user_id`
   connect.query(q,user,(err,results) => {
     if(err){console.log(err);return done(err,null);}
     console.log(results);
@@ -133,6 +135,7 @@ passport.use('facebook-signup-react',new FacebookStrategy({
 },(a, r, profile, done) => {
   console.log('==============================Facebook Signup React================================');
   var email = null;
+  console.log(email);
   try{
     email = profile.emails[0].value
   } catch(err){
@@ -143,23 +146,24 @@ passport.use('facebook-signup-react',new FacebookStrategy({
     username : profile.displayName,
     email : email,
     firstname : profile.name.givenName,
-    lastname : profile.name.familyName,
+    lastname : profile.name.familyName
   }
-  let q = 'INSERT INTO users SET ?, created_at = NOW()'
-  connect.query(q,user,(err,results) => {
+  let q = `INSERT INTO users(facebook_id,username,email,firstname,lastname,created_at) 
+        VALUES($1,$2,$3,$4,$5,NOW()) RETURNING user_id`
+  connect.query(q,[profile.id,profile.displayName,email,profile.name.givenName,profile.name.familyName],(err,results) => {
     if(err){console.log(err);return done(err,null);}
     let imgUrl = profile['photos'][0].value
     axios.get(imgUrl,{responseType: 'arraybuffer'})
     .then(response=>{
       data = Buffer.from(response.data, 'binary').toString('base64');
-      q = `INSERT INTO images(user_id,image) VALUES(?,?) ON DUPLICATE KEY UPDATE image=?`
-      connect.query(q,[results.insertId,data,data],(err,r)=>{
+      q = `INSERT INTO images(user_id,image) VALUES($1,$2) ON CONFLICT (user_id) DO UPDATE SET image = ($2)`
+      connect.query(q,[results.rows[0]['user_id'],data],(err,r)=>{
         if(err) console.log(err);
       })
     });
     return done(null,{
       ...user,
-      user_id : results.insertId
+      user_id : results.rows[0]['user_id']
     });
   })
 }))
@@ -171,7 +175,7 @@ passport.use('facebook-login-react',new FacebookStrategy({
   profileFields: ['id', 'displayName', 'name', 'gender', 'picture.type(normal)']
 },(a, r, profile, done) => {
   console.log('==============================Facebook Login React================================');
-  let q = 'SELECT * FROM users WHERE facebook_id = ?'
+  let q = 'SELECT * FROM users WHERE facebook_id = $1'
   connect.query(q,profile.id,(err,results) => {
     if(err){console.log(err);return done(new Error("Internal Error"),false);}
     if(results.length === 0){
@@ -183,17 +187,17 @@ passport.use('facebook-login-react',new FacebookStrategy({
     axios.get(imgUrl,{responseType: 'arraybuffer'})
     .then(response=>{
       data = Buffer.from(response.data, 'binary').toString('base64');
-      q = `INSERT INTO images(user_id,image) VALUES(?,?) ON DUPLICATE KEY UPDATE image=?`
-      connect.query(q,[results[0]['user_id'],data,data],(err,r)=>{
+      q = `INSERT INTO images(user_id,image) VALUES($1,$2) ON CONFLICT (user_id) DO UPDATE SET image = ($2)`
+      connect.query(q,[results[0]['user_id'],data],(err,r)=>{
         if(err) console.log(err);
       })
     });
     return done(null,{
-      user_id : results[0]['user_id'],
-      firstname : results[0]['firstname'],
-      lastname : results[0]['lastname'],
-      email : results[0]['email'],
-      username : results[0]['username']
+      user_id : results.rows[0]['user_id'],
+      firstname : results.rows[0]['firstname'],
+      lastname : results.rows[0]['lastname'],
+      email : results.rows[0]['email'],
+      username : results.rows[0]['username']
     });
   })
 }))

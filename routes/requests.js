@@ -9,7 +9,11 @@ var newGroups = require('../newgroups');
 router.route('/')
 .options(cors.corsWithOptions,(req,res) => {res.sendStatus(200);})
 .get(cors.corsWithOptions,auth.isAuthenticated,(req,res,next)=>{
-  let q = `SELECT requests.group_id,requests.from_user_id as name_user_id,users.username as group_user_name,images.image,messages.message
+  let q = `SELECT 
+    requests.group_id,requests.from_user_id as name_user_id,
+    users.username as group_user_name,
+    images.image,
+    messages.message,messages.message_id as lastmessageid,messages.user_id as last_message_user_id
   FROM
     requests
   JOIN users ON requests.from_user_id=users.user_id
