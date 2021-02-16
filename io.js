@@ -11,7 +11,6 @@ function socket_io(io){
         newGroups[user_id] = (new_group,user_id)=>{
             groups.push({group_id: new_group,user_id : user_id});
         }
-        console.log(newGroups);
         socketList.sockets[user_id] = socket.id;
         console.log("io",socketList);
         q = 'SELECT group_id,users.user_id FROM members JOIN users ON members.name_user_id=users.user_id WHERE members.user_id = $1';
@@ -55,7 +54,6 @@ function socket_io(io){
         })
 
         socket.on('offer',(data)=>{
-            // console.log(data);
             io.to(socketList.sockets[data.receiver]).emit('offer',{offer:data.offer,sender:user_id,video:data.video})
         })
         socket.on('icecandidate',data=>{
@@ -71,7 +69,6 @@ function socket_io(io){
         socket.on('typing',data=>{
             for(i = 0; i < groups.length; ++i){
                 if(groups[i].group_id === data.group_id){
-                    console.log(groups[i]);
                     io.to(socketList.sockets[groups[i].user_id]).emit('typing',{typer:user_id,group_id:data.group_id});
                     break;
                 }
@@ -79,14 +76,11 @@ function socket_io(io){
         });
 
         socket.on('disconnect',(socket) => {
-            console.log(groups);
             delete socketList.sockets[user_id];
-            console.log("disconnected",groups);
             groups.forEach(group=>{
                 console.log(group)
                 if(socketList.sockets[group.user_id]){
-                    console.log(group);
-                    io.to(socketList.sockets[group.user_id]).emit('new-inactive',{user_id:user_id})
+                    io.to(socketList.sockets[group.user_id]).emit('new-inactive',{user_id:user_id,group_id : group.group_id})
                 }
             })
         })

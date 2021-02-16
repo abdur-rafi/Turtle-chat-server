@@ -128,17 +128,119 @@ BEGIN
   END IF;
 END;
 $$LANGUAGE plpgsql;
-
-
-
-
-
 `
+
+let getMessage = `
+  CREATE OR REPLACE FUNCTION getMessages(user_id_ integer, group_id_ integer)
+  RETURNS TABLE(
+    message TEXT,
+    message_id integer,
+    sent_at TIMESTAMP WITH TIME ZONE,
+    username VARCHAR,
+    user_id integer,
+    group_id integer
+  ) AS $$
+  DECLARE
+    auth integer;
+  BEGIN
+    SELECT count(*) INTO auth FROM members WHERE members.user_id = user_id_ AND members.group_id = group_id_;
+    IF auth = 0 THEN
+      RAISE EXCEPTION 'UNAUTHORIZED';
+    ELSE
+      RETURN QUERY
+      SELECT messages.message,messages.message_id,messages.sent_at,
+      users.username,users.user_id,messages.group_id 
+      FROM messages JOIN 
+      users ON messages.user_id = users.user_id 
+      AND messages.group_id = group_id_
+      ORDER BY sent_at ASC;
+    END IF;
+  END;
+  $$LANGUAGE plpgsql;
+`
+let createNewGroup = `
+    CREATE OR REPLACE FUNCTION createGroup(user_id_ integer,group_name_ varchar, image_ text) 
+    RETURNS TABLE(
+      group_id integer,
+      userlastSeen integer,
+      lastMessageId integer,
+      name_user_id integer,
+      req integer,
+      lastSeen integer,
+      group_user_name varchar,
+      group_name varchar,
+      last_time TIMESTAMP WITH TIME ZONE,
+      image text,
+      message text,
+      last_message_user_id integer
+    )
+    AS $$
+    DECLARE
+      name_user_id_ integer;
+      created_group_id_ integer;
+    BEGIN
+      INSERT INTO users(username,created_at,type) VALUES(group_name_,NOW(),1) RETURNING user_id INTO name_user_id_;
+      INSERT INTO images(user_id,image) VALUES(name_user_id_,image_);
+      INSERT INTO mgroups(created_at) VALUES(NOW()) RETURNING mgroups.group_id INTO created_group_id_;
+      INSERT INTO members(user_id,group_id,name_user_id,req) VALUES(user_id_,created_group_id_,name_user_id_,2);
+      RETURN QUERY
+          SELECT 
+          members.group_id,members.lastSeen as userlastSeen,members.lastMessage as lastMessageId,
+          members.name_user_id,members.req,
+          members2.lastSeen,users.username as group_user_name,
+          mgroups.name as group_name ,mgroups.last_time,
+          images.image,messages.message,messages.user_id as last_message_user_id 
+      FROM 
+          members members
+      LEFT JOIN
+          members members2 ON members.name_user_id=members2.user_id AND members.group_id=members2.group_id
+      JOIN 
+          mgroups ON members.group_id = mgroups.group_id
+      JOIN
+          users ON members.name_user_id = users.user_id
+      JOIN
+          images ON images.user_id = members.user_id
+      LEFT JOIN
+          messages ON messages.message_id=members.lastMessage
+      WHERE 
+          members.user_id = user_id_ AND members.group_id = created_group_id_;
+      END;
+    $$LANGUAGE plpgsql;
+`
+
+let acceptRequest = `
+    CREATE OR REPLACE FUNCTION acceptRequest(user_id_ integer,group_id_ integer,
+    OUT from_user_id_ integer)
+    AS $$
+    DECLARE
+      req_id_ integer;
+    BEGIN
+    SELECT request_id,from_user_id INTO req_id_,from_user_id_ FROM requests WHERE to_user_id = user_id_ AND group_id = group_id_ LIMIT 1;
+    IF req_id_ IS NULL THEN 
+      RAISE EXCEPTION 'request not found';
+    ELSE
+      INSERT INTO friends(user_id,friend_id,time) VALUES(user_id_,from_user_id_,NOW());
+      INSERT INTO members(user_id,group_id,name_user_id) VALUES(user_id_,group_id_,from_user_id_);
+      UPDATE members SET req = 0 WHERE user_id = from_user_id_ and name_user_id =user_id_;
+      DELETE from requests WHERE request_id = req_id_;
+    END IF;
+  END;
+  $$LANGUAGE plpgsql;
+`
+
 let q = `SELECT * FROM addMemberToGroup($1::int,$2::int,($3)::int[],$4::int,$5::mytype[])`;
+q = 'SELECT * FROM getMessages($1,$2)'
+q = 'SELECT * FROM createGroup($1,$2,$3)'
 // q = format(q,[[80,83,87,2]]);
 console.log(q);
 
 let connect = pool;
+// connect.query(acceptRequest,(err,res)=>{
+//   console.log(err);
+//   // connect.query(q,[80,'from_code',''],(err,result)=>{
+//   //   console.log(err,result);
+//   // })
+// })
 // connect.query(addMembers, (err,res)=>{
 //     console.log(err,res);
 //     // let new_members = [[79,85,null,2]]

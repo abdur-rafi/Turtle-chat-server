@@ -115,64 +115,26 @@ router.route('/')
 router.route('/newgroup')
 .options(cors.corsWithOptions,(req,res) => {res.sendStatus(200);})
 .post(cors.corsWithOptions,auth.isAuthenticated,(req,res,next)=>{
-    // console.log("here");
-    // console.log(req.body);
     if(!req.body.group_name || !req.body.group_image){
-        res.status(400).json({message : "group_name of image is not set"});
+        res.status(400).json({message : "group_name or image is not set"});
         return;
     }
-    let q = `INSERT INTO users(username,created_at,type) VALUES($1,NOW(),1) RETURNING user_id`
-    connect.query(q,[req.body.group_name],(err,result)=>{
+    let q = 'SELECT * FROM createGroup($1,$2,$3)'
+    connect.query(q,[req.user.user_id,req.body.group_name,req.body.group_image],(err,result)=>{
         if(err){console.log(err);return next(err)}
-        let new_user_id = result.rows[0]['user_id']; 
-        q = `INSERT INTO images(user_id,image) VALUES($1,$2)`
-        connect.query(q,[new_user_id,req.body.group_image],(err,result)=>{
-            if(err){console.log(err);return next(err)}
-            q = `INSERT INTO mgroups(created_at) VALUES(NOW()) RETURNING group_id`
-            connect.query(q,(err,result)=>{
-                if(err){console.log(err);return next(err)}
-                let new_group_id = result.rows[0]['group_id'];
-                q = `INSERT INTO members(user_id,group_id,name_user_id,req) VALUES($1,$2,$3,2)`
-                connect.query(q,[req.user.user_id,new_group_id,new_user_id],(err,result)=>{
-                    if(err){console.log(err);return next(err)}
-                    q = `SELECT 
-                            members.group_id,members.lastSeen as userlastSeen,members.lastMessage as lastMessageId,
-                            members.name_user_id,members.req,
-                            members2.lastSeen,users.username as group_user_name,
-                            mgroups.name as group_name ,mgroups.last_time,
-                            images.image,messages.message,messages.user_id as last_message_user_id 
-                        FROM 
-                            members members
-                        LEFT JOIN
-                            members members2 ON members.name_user_id=members2.user_id AND members.group_id=members2.group_id
-                        JOIN 
-                            mgroups ON members.group_id = mgroups.group_id
-                        JOIN
-                            users ON members.name_user_id = users.user_id
-                        JOIN
-                            images ON images.user_id = users.user_id
-                        LEFT JOIN
-                            messages ON messages.message_id=members.lastMessage
-                        WHERE 
-                            members.user_id = $1 AND members.group_id = $2`
-                        connect.query(q,[req.user.user_id,new_group_id],(err,result)=>{
-                            let group = result.rows[0];
-                            q = 'SELECT image FROM images WHERE user_id = $1'
-                            connect.query(q,[req.user.user_id],(err,result)=>{
-                                if(err){console.log(err);return next(err)}
-                                
-                                res.status(200).json({group : {...group,group_members:[{
-                                    user_id : req.user.user_id,
-                                    username : req.user.username,
-                                    image : result.rows[0]['image']
-                                }]}})
-                            })
-                            
-                        })
-                })
-            })
-        })
+        console.log(result.rows);
+        res.status(200).json({
+            group : {
+            ...result.rows[0],
+            image : req.body.group_image,
+            group_members : [{
+                user_id : req.user.user_id,
+                username : req.user.username,
+                image : result.rows[0]['image']
+            }]
+        }})
     })
+    
 })
 
 
@@ -326,20 +288,12 @@ router.route('/:group_id')
 .get(cors.corsWithOptions,auth.isAuthenticated,(req,res,next) => {
     let group_id = req.params.group_id;
     let user_id = req.user.user_id;
-    let q = `SELECT * FROM members WHERE user_id = $1 AND group_id = $2`;
-    connect.query(q,[user_id,group_id],(err,results) => {
-        if(err){console.log(err);return next(err);}
-        if(results.rows.length == 0){
-            return res.status(404).json({message : "group not found"});
-        }
-        q = `SELECT message,message_id,sent_at,username,users.user_id,messages.group_id FROM messages JOIN 
-            users ON messages.user_id = users.user_id AND messages.group_id = $1 ORDER BY sent_at ASC`
-        connect.query(q,[group_id],(err,results) => {
-            if(err){console.log(err);return next(err);}
-            res.status(200).json(results.rows);
-            
-        })
-    });
+    let q = 'SELECT * FROM getMessages($1,$2)'
+    connect.query(q,[user_id,group_id],(err,result)=>{
+        if(err){console.log(err);return next(err)}
+        res.status(200).json(result.rows);
+    })
+    
 })
 router.route('/:group_id/addmembers')
 .options(cors.corsWithOptions,(req,res) => {res.sendStatus(200);})

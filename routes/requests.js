@@ -106,43 +106,22 @@ router.route('/:req_id')
 router.route('/accept/:group_id')
 .options(cors.corsWithOptions,(req,res) => {res.sendStatus(200);})
 .post(cors.corsWithOptions,auth.isAuthenticated,(req,res,next)=>{
-    let q = 'SELECT * FROM requests WHERE to_user_id=$1 AND group_id=$2'
-    let req_id =-1;
-    connect.query(q,[req.user.user_id,req.params.group_id],(err,results)=>{
-        if(err){console.log(err);return next(err)}
-        if(results.rows.length === 0){res.status(404).json({message : 'request not found'});return}
-        req_id = results.rows[0]['request_id']
-        q = 'INSERT INTO friends(user_id,friend_id,time) VALUES($1,$2,NOW())'
-        connect.query(q,[req.user.user_id,results.rows[0]['from_user_id']],(err,result)=>{
-            if(err){console.log(err);return next(err)}
-            q = 'INSERT INTO members(user_id,group_id,name_user_id) VALUES($1,$2,$3)'
-            connect.query(q,[req.user.user_id,req.params.group_id,results.rows[0]['from_user_id']],(err,result)=>{
-                if(err){console.log(err);return next(err)}
-                if(newGroups[req.user.user_id]) newGroups[req.user.user_id](req.params.group_id,results.rows[0]['from_user_id']);
-                // if(newGroups[req.user.user_id]) newGroups[req.user.user_id] = [...newGroups[req.user.user_id],req.params.group_id]
-                // else newGroups[req.user.user_id] = [req.params.group_id];  
-                res.status(200).json({
-                  message:"success",
-                  group_id: parseInt(req.params.group_id),
-                  active : socketList.sockets[results.rows[0]['from_user_id']] ? true : false
-                })
-                console.log("accept func");
-                console.log(socketList.sockets[results.rows[0]['from_user_id']] ? true : false);
-                console.log(socketList.sockets[results.rows[0]['from_user_id']]);
-                if(socketList.sockets[results.rows[0]['from_user_id']]){
-                  req.io.to(socketList.sockets[results.rows[0]['from_user_id']]).emit('new-active',{user_id:req.user.user_id})
-                }
-                q = `UPDATE members SET req = 0 WHERE user_id = $1 AND name_user_id = $2`
-                connect.query(q,[results.rows[0]['from_user_id'],req.user.user_id],(err,result)=>{
-                  if(err){console.log(err);return next(err)}
-                })
-            })
-            q = 'DELETE FROM requests WHERE request_id=$1'
-            connect.query(q,[req_id],(err,result)=>{
-              if(err){console.log(err);return next(err)}
-            })
-        })
+  let q = 'SELECT * FROM acceptRequest($1,$2)';
+  connect.query(q,[req.user.user_id,parseInt(req.params.group_id)],(err,result)=>{
+    if(err){console.log(err);return next(err)}
+    let from_user_id = result.rows[0]['from_user_id_'];
+    if(newGroups[req.user.user_id]) newGroups[req.user.user_id](req.params.group_id,from_user_id);
+    res.status(200).json({
+      message:"success",
+      group_id: parseInt(req.params.group_id),
+      active : socketList.sockets[from_user_id] ? true : false
     })
+    if(socketList.sockets[from_user_id]){
+        req.io.to(socketList.sockets[from_user_id]).emit('new-active',{user_id:req.user.user_id})
+    }
+
+  })
+   
 })
 
 module.exports = router;
