@@ -18,7 +18,6 @@ var facebookRouter = require('./routes/facebook');
 var facebookReactRouter = require('./routes/facebook-react');
 var googleReactRouter = require('./routes/google-react');
 
-// console.log(process.env.DATABASE_URL);
 
 
 var connect = require('./sql');
@@ -52,9 +51,7 @@ var sess = {
 var cookieConfig = {
   ...sess
 }
-console.log(process.env.PRODUCTION);
 if(process.env.PRODUCTION !== 'TRUE'){
-  console.log('secured');
   app.set('trust proxy', 1);
   cookieConfig = {
     ...cookieConfig,
@@ -114,7 +111,5 @@ app.use(function(err, req, res, next) {
   res.render('error');
 });
 
-// console.log(process.app.get('env'));
-console.log(process.env.PRODUCTION === 'TRUE');
 
 module.exports = app;

@@ -16,7 +16,6 @@ router.route('/')
 .options(cors.corsWithOptions,(req,res) => {res.sendStatus(200);})
 .get(cors.corsWithOptions,auth.isAuthenticated,(req,res,next)=>{
     let user_id = req.user.user_id;
-    console.log(process.env.PORT);
     let  q;
     q = `SELECT 
             members.group_id,members.lastSeen as userlastSeen,members.lastMessage as lastMessageId,
@@ -122,7 +121,6 @@ router.route('/newgroup')
     let q = 'SELECT * FROM createGroup($1,$2,$3)'
     connect.query(q,[req.user.user_id,req.body.group_name,req.body.group_image],(err,result)=>{
         if(err){console.log(err);return next(err)}
-        console.log(result.rows);
         res.status(200).json({
             group : {
             ...result.rows[0],
@@ -220,7 +218,6 @@ router.route('/:group_id')
                 q = `SELECT user_id FROM members WHERE group_id = $1 AND user_id != $2`
                 connect.query(q,[group_id,req.user.user_id],(err,result)=>{
                     if(err){console.log(err);return next(err)}
-                    console.log(result);
                     result.rows.forEach(row=>{
                         if(socketList.sockets[row['user_id']]){
                             req.io.to(socketList.sockets[row['user_id']]).emit('new-message',message_io);

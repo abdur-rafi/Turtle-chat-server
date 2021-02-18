@@ -11,8 +11,13 @@ function socket_io(io){
         newGroups[user_id] = (new_group,user_id)=>{
             groups.push({group_id: new_group,user_id : user_id});
         }
+        console.log( "user_id socket : " + socketList.sockets[user_id]);
+        if( socketList.sockets[user_id] ){      
+            io.to(socketList.sockets[user_id]).emit('new-login-detected',{user_id : user_id});
+            console.log("here in old socketList function")
+        }
         socketList.sockets[user_id] = socket.id;
-        console.log("io",socketList);
+        // console.log("io",socketList);
         q = 'SELECT group_id,users.user_id FROM members JOIN users ON members.name_user_id=users.user_id WHERE members.user_id = $1';
         connect.query(q,[user_id],(err,results) => {
             if(err){console.log(err);return;}
@@ -26,16 +31,13 @@ function socket_io(io){
                 q = `SELECT lastSeen,name_user_id FROM members WHERE (user_id,group_id)=($1,$2)`
                 connect.query(q,[user_id,data.group_id],(err,results)=>{
                     if(err){console.log(err);return;}
-                    console.log(results.rows);
                     if(results.rows.length === 0) return;
-                    console.log({group_id:data.group_id,lastSeen:results.rows[0]['lastseen']});
                     io.to(socketList.sockets[results.rows[0]['name_user_id']]).emit('update-seen',{group_id:data.group_id,lastSeen:results.rows[0]['lastseen']});
                 })
             })
         })
 
         socket.on('voice-call',(data)=>{
-            console.log(data);
             if(groups.some(group => group.group_id === data.group_id && group.user_id === data.user_id)){
                 if(socketList.sockets[data.user_id]){
                     io.to(socketList.sockets[data.user_id]).emit('voice-call-request',{user_id:user_id,group_id:data.group_id,peerId:data.peerId});
@@ -57,7 +59,6 @@ function socket_io(io){
             io.to(socketList.sockets[data.receiver]).emit('offer',{offer:data.offer,sender:user_id,video:data.video})
         })
         socket.on('icecandidate',data=>{
-            console.log("icecand",data);
             io.to(socketList.sockets[data.receiver]).emit('icecandidate',{candidate:data.candidate})
         })
         socket.on('close-call',data=>{
@@ -79,7 +80,6 @@ function socket_io(io){
             delete socketList.sockets[user_id];
             
             groups.forEach(group=>{
-                console.log(group)
                 if(socketList.sockets[group.user_id]){
                     io.to(socketList.sockets[group.user_id]).emit('new-inactive',{user_id:user_id,group_id : group.group_id})
                 }

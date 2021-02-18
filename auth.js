@@ -74,7 +74,6 @@ passport.use('google-signup-react', new GoogleStrategy({
       VALUES ($1,$2,$3,$4,$5,NOW()) RETURNING user_id`
   connect.query(q,user,(err,results) => {
     if(err){console.log(err);return done(err,null);}
-    console.log(results);
     let imgUrl = profile['photos'][0].value
     axios.get(imgUrl,{responseType: 'arraybuffer'})
     .then(response=>{
@@ -100,7 +99,6 @@ passport.use('google-login-react', new GoogleStrategy({
   console.log('==============================Google Login React================================');
   let q = 'SELECT * FROM users WHERE google_id = $1'
   connect.query(q,[profile.id],(err,results) => {
-    // console.log(results);
     if(err){console.log(err);return done(new Error("Internal Error"),false);}
     if(results.rows.length === 0){
       let error = new Error("Users not found");
@@ -135,7 +133,6 @@ passport.use('facebook-signup-react',new FacebookStrategy({
 },(a, r, profile, done) => {
   console.log('==============================Facebook Signup React================================');
   var email = null;
-  console.log(email);
   try{
     email = profile.emails[0].value
   } catch(err){
@@ -211,19 +208,16 @@ passport.use('facebook-login-react',new FacebookStrategy({
 
 
 passport.serializeUser(function(user, cb) {
-  console.log(user);
   cb(null, user.user_id);
 });
 
 passport.deserializeUser(function(id, cb) {
-  // console.log(id);
   let q = 'SELECT * FROM users WHERE user_id = $1';
   connect.query(q,[id],(err,results) =>{
     if(err){
       console.log(err)
       return cb(err);
     }
-    // console.log(results);
     if(!results) return cb(new Error("invalid cookie"));
     cb(null,results.rows[0]);
   })

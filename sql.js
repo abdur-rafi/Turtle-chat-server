@@ -239,7 +239,6 @@ let q = `SELECT * FROM addMemberToGroup($1::int,$2::int,($3)::int[],$4::int,$5::
 q = 'SELECT * FROM getMessages($1,$2)'
 q = 'SELECT * FROM createGroup($1,$2,$3)'
 // q = format(q,[[80,83,87,2]]);
-console.log(q);
 
 let connect = pool;
 // connect.query(createNewGroup,(err,res)=>{
