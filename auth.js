@@ -175,8 +175,15 @@ passport.use('facebook-login-react',new FacebookStrategy({
   profileFields: ['id', 'displayName', 'name', 'gender', 'picture.type(normal)']
 },(a, r, profile, done) => {
   console.log('==============================Facebook Login React================================');
+  // let user = {
+  //   facebook_id : profile.id,
+  //   username : profile.displayName,
+  //   email : email,
+  //   firstname : profile.name.givenName,
+  //   lastname : profile.name.familyName
+  // }
   let q = 'SELECT * FROM users WHERE facebook_id = $1'
-  connect.query(q,profile.id,(err,results) => {
+  connect.query(q,[profile.id],(err,results) => {
     if(err){console.log(err);return done(new Error("Internal Error"),false);}
     if(results.length === 0){
       let error = new Error("Users not found");

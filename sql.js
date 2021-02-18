@@ -59,17 +59,24 @@ let createGroupAndInsert = `
   CREATE OR REPLACE FUNCTION createGroupInsertMessage(user_id_ integer,group_id_ integer,message_ text,
     OUT message_id_ integer, OUT name_user_id_ integer,OUT new_group_id_ integer,OUT image_ text)
   AS $result$
+  DECLARE 
+    auth integer;
   BEGIN
-    INSERT INTO friends(user_id,friend_id,time) VALUES(user_id_,group_id_,NOW());
-    INSERT INTO mgroups(created_at) VALUES(NOW()) RETURNING group_id INTO new_group_id_;
-    INSERT INTO members(user_id,group_id,name_user_id,req) VALUES(user_id_,new_group_id_,group_id_,1);
-    INSERT INTO requests(to_user_id,from_user_id,group_id,sent_at) VALUES(group_id_,user_id_,new_group_id_,NOW());
-    INSERT INTO messages(group_id,user_id,message,sent_at) VALUES(new_group_id_,user_id_,message_,NOW()) RETURNING message_id INTO message_id_;
-    SELECT image INTO image_ FROM images WHERE user_id=user_id_;
-    UPDATE members SET lastMessage = message_id_ WHERE group_id = new_group_id_;
-    UPDATE members SET lastSeen=lastMessage WHERE user_id=user_id_ AND group_id=new_group_id_;
-    UPDATE mgroups SET last_time = NOW() WHERE group_id = new_group_id_;
-  END
+    SELECT count(*) INTO auth FROM friends WHERE user_id = group_id_ AND friend_id = user_id_;
+    IF auth != 0 THEN
+      RAISE EXCEPTION 'REQUEST SENT FROM USER';
+    ELSE
+      INSERT INTO friends(user_id,friend_id,time) VALUES(user_id_,group_id_,NOW());
+      INSERT INTO mgroups(created_at,last_time) VALUES(NOW(),NOW()) RETURNING group_id INTO new_group_id_;
+      INSERT INTO members(user_id,group_id,name_user_id,req) VALUES(user_id_,new_group_id_,group_id_,1);
+      INSERT INTO requests(to_user_id,from_user_id,group_id,sent_at) VALUES(group_id_,user_id_,new_group_id_,NOW());
+      INSERT INTO messages(group_id,user_id,message,sent_at) VALUES(new_group_id_,user_id_,message_,NOW()) RETURNING message_id INTO message_id_;
+      SELECT image INTO image_ FROM images WHERE user_id=user_id_;
+      UPDATE members SET lastMessage = message_id_ WHERE group_id = new_group_id_;
+      UPDATE members SET lastSeen=lastMessage WHERE user_id=user_id_ AND group_id=new_group_id_;
+      UPDATE mgroups SET last_time = NOW() WHERE group_id = new_group_id_;
+    END IF;
+  END;
   $result$ LANGUAGE plpgsql;
 `
 //create type mytype as (val1 integer,val2 integer,val3 integer,val4 integer);
@@ -181,7 +188,7 @@ let createNewGroup = `
     BEGIN
       INSERT INTO users(username,created_at,type) VALUES(group_name_,NOW(),1) RETURNING user_id INTO name_user_id_;
       INSERT INTO images(user_id,image) VALUES(name_user_id_,image_);
-      INSERT INTO mgroups(created_at) VALUES(NOW()) RETURNING mgroups.group_id INTO created_group_id_;
+      INSERT INTO mgroups(created_at,last_time) VALUES(NOW(),NOW()) RETURNING mgroups.group_id INTO created_group_id_;
       INSERT INTO members(user_id,group_id,name_user_id,req) VALUES(user_id_,created_group_id_,name_user_id_,2);
       RETURN QUERY
           SELECT 
@@ -235,11 +242,11 @@ q = 'SELECT * FROM createGroup($1,$2,$3)'
 console.log(q);
 
 let connect = pool;
-// connect.query(acceptRequest,(err,res)=>{
+// connect.query(createNewGroup,(err,res)=>{
 //   console.log(err);
-//   // connect.query(q,[80,'from_code',''],(err,result)=>{
-//   //   console.log(err,result);
-//   // })
+  // connect.query(q,[80,'from_code',''],(err,result)=>{
+  //   console.log(err,result);
+  // })
 // })
 // connect.query(addMembers, (err,res)=>{
 //     console.log(err,res);

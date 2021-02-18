@@ -77,6 +77,7 @@ function socket_io(io){
 
         socket.on('disconnect',(socket) => {
             delete socketList.sockets[user_id];
+            
             groups.forEach(group=>{
                 console.log(group)
                 if(socketList.sockets[group.user_id]){

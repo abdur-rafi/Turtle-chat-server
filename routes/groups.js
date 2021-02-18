@@ -54,7 +54,7 @@ router.route('/')
             for(i = 0;i < results.rows.length;++i){
                 // console.log(results.rows[i]);
                 results.rows[i]['bold'] = false;
-                if(results.rows[i]['lastMessageId'] !== results.rows[i]['userlastSeen']){
+                if(results.rows[i]['lastmessageid'] !== results.rows[i]['userlastseen']){
                     results.rows[i]['bold'] = true;
                 }
                 if(!results.rows[i].req && socketList.sockets[results.rows[i]['name_user_id']]){
@@ -147,6 +147,12 @@ router.route('/:group_id')
             message : "message body is empty"
         })
     }
+    if(req.user.user_id === parseInt(req.params.group_id)){
+        res.status(400).json({
+            message : "invalid request"
+        });
+        return;
+    }
     let group_id = req.params.group_id;
     let user_id = req.user.user_id;
     if(typeof(group_id) === "string" && group_id.substring(0,7)==='request'){
@@ -154,11 +160,11 @@ router.route('/:group_id')
         group_id = parseInt(group_id);
         q = `SELECT * FROM createGroupInsertMessage($1,$2,$3)`
         connect.query(q,[user_id,group_id,message],(err,result)=>{
-            // console.log(result);
             if(err){console.log(err);return next(err)}
             let created_group_id = result.rows[0]['new_group_id_'];
             let image = result.rows[0]['image_']
             let lastmessageid = result.rows[0]['message_id_']
+            if(newGroups[req.user.user_id]) newGroups[user_id](created_group_id,group_id);
             if(socketList.sockets[group_id]){ 
                 req.io.to(socketList.sockets[group_id])
                 .emit('new-request',{
@@ -224,65 +230,6 @@ router.route('/:group_id')
             }
 
         })
-        {
-        // let q = `SELECT * FROM members WHERE user_id = $1 AND group_id = $2`;
-        // connect.query(q,[user_id,group_id],(err,results) => {
-        //     if(err){console.log(err);return next(err);}
-        //     if(results.rows.length == 0){
-        //         return res.status(404).json({message : "group not found"});
-        //     }
-        //     group_id = parseInt(group_id)
-        //     let to = results.rows[0]['name_user_id'];
-        //     let isGroup = results.rows[0]['req'] === 2;
-        //     console.log("isGroup",isGroup);
-        //     // console.log("message query", results);
-        //     q = `INSERT INTO messages(group_id,user_id,message,sent_at) VALUES($1,$2,$3,NOW()) RETURNING message_id`
-        //     connect.query(q,[group_id,user_id,message],(err,results) => {
-        //         if(err){console.log(err);return next(err);}
-        //         res.status(200).json({
-        //             message : "message sent successfully",
-        //             sendingId:req.body.sendingId,
-        //             message_id:results.rows[0].message_id,
-        //             group_id:group_id
-        //         })
-        //         let message_io = {
-        //             group_id : group_id,
-        //             username : req.user.username,
-        //             message : message,
-        //             sent_at : Date.now(),
-        //             message_id : results.rows[0].message_id,
-        //             user_id : user_id
-        //         }
-        //         if(!isGroup){
-        //             if(socketList.sockets[to]) req.io.to(socketList.sockets[to]).emit('new-message',message_io)
-        //         }
-        //         else{
-        //             q = `SELECT user_id FROM members WHERE group_id = $1 AND user_id != $2`
-        //             connect.query(q,[group_id,req.user.user_id],(err,result)=>{
-        //                 if(err){console.log(err);return next(err)}
-        //                 console.log(result);
-        //                 result.rows.forEach(row=>{
-        //                     if(socketList.sockets[row['user_id']]){
-        //                         req.io.to(socketList.sockets[row['user_id']]).emit('new-message',message_io);
-        //                     }
-        //                 });
-        //             })
-        //         }
-                    
-        //         q = `UPDATE members SET lastMessage = $1 WHERE group_id = $2`
-        //         connect.query(q,[results.rows[0].message_id,group_id],(err,results) => {
-        //             if(err){console.log(err);}
-        //             q = `UPDATE members SET lastSeen=lastMessage WHERE user_id=$1 AND group_id=$2`
-        //             connect.query(q,[user_id,group_id],(err,results)=>{if(err){console.log(err)}})
-        //         }) 
-        //         q = 'UPDATE mgroups SET last_time = NOW() WHERE group_id = $1'
-        //         connect.query(q,[group_id],(err,results) =>{
-        //             if(err){console.log(err);}
-        //         })
-                
-        //     })
-        // })
-        }
     }
 })
 .get(cors.corsWithOptions,auth.isAuthenticated,(req,res,next) => {

@@ -35,4 +35,13 @@ router.route('/:username')
   })
 });
 
+router.route('/log/logout')
+.options(cors.corsWithOptions,(req,res)=>{res.sendStatus(200)})
+.post(cors.corsWithOptions,auth.isAuthenticated,(req,res,next)=>{
+  req.logout();
+  res.status(200).json({
+    message : "log out successful"
+  })
+})
+
 module.exports = router;
