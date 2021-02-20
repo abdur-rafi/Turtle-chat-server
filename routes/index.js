@@ -1,6 +1,5 @@
 var express = require('express');
 var router = express.Router();
-var passport = require('passport');
 var auth = require('../auth');
 var path = require('path');
 /* GET home page. */

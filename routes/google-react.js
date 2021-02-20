@@ -1,9 +1,6 @@
 var express = require('express');
 var router = express.Router();
-var connect = require('../sql');
 var passport = require('passport');
-var auth = require('../auth');
-var path = require('path');
 var cors = require('../cors');
 
 router.

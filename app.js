@@ -43,8 +43,8 @@ else{
 
 var sess = {
   name : 'turtle-chat-01',
-  maxAge: 4 * 1000 * 60 * 60 ,
-  expires: 4 * 1000 * 60 * 60,
+  maxAge: 12 * 1000 * 60 * 60 ,
+  expires: 12 * 1000 * 60 * 60,
   keys : keys
 }
 

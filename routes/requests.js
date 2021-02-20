@@ -30,63 +30,6 @@ router.route('/')
 
 router.route('/:req_id')
 .options(cors.corsWithOptions,(req,res) => {res.sendStatus(200);})
-.delete(cors.corsWithOptions,auth.isAuthenticated,(req,res,next) =>{
-  let request_id = req.params.req_id;
-  let q = `SELECT * FROM requests WHERE request_id = $1 AND to_user_id = $2`;
-  connect.query(q,[request_id,req.user.user_id],(err,results) => {
-    if(err){
-      console.log(err);
-      return next(err);
-    }
-    // console.log(results);
-    if(results.rows.length == 0){
-      res.status(404).json({
-        message : "request not found"
-      });
-      return;
-    }
-    let from_user_id = results.rows[0]['from_user_id'];
-    q = `DELETE FROM requests WHERE request_id = $1 AND to_user_id = $2`;
-    connect.query(q,[request_id,req.user.user_id],(err,results) =>{
-      if(err){
-        console.log(err);
-        return next(err);
-      }
-      res.status(200).json({
-        message : "request deleted"
-      });
-      q = `INSERT INTO notifications(message,user_id,created_at) VALUES() created_at = NOW()`;
-      connect.query(q,{
-        message : req.user.username + " did not accept your request",
-        user_id : from_user_id
-      },(err,results) => {
-        if(err){
-          console.log(err);
-          return next(err);
-        }
-
-        q = 'UPDATE users SET notificationsCount = notificationsCount + 1 WHERE user_id = ? ';
-        connect.query(q,[from_user_id],(err,results) =>{
-          if(err){
-            console.log(err);
-          }
-        })
-
-        q = `SELECT socket_id FROM sockets WHERE user_id = ?`;
-        connect.query(q,[from_user_id],(err,results)=>{
-          if(err){
-            console.log(err);
-            return next(err);
-          }
-          if(results.length == 0) return;
-          req.io.to(results[0]['socket_id']).emit('Notification',{
-            message : req.user.username + " did not accept your request"
-          })
-        })
-      })
-    }) 
-  })
-})
 .get(cors.corsWithOptions,auth.isAuthenticated,(req,res,next)=>{
   let q = 'SELECT request_id FROM requests WHERE to_user_id=$1 AND group_id=$2';
   connect.query(q,[req.user.user_id,req.params.req_id],(err,result)=>{
@@ -99,7 +42,7 @@ router.route('/:req_id')
       res.status(200).json(result.rows);
     })
   })
-
+  
 })
 
 

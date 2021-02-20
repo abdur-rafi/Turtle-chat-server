@@ -35,7 +35,6 @@ passport.use('google-signup-react', new GoogleStrategy({
   ...googleConfig,
   callbackURL : url + '/google-react/info'
 }, (a, r, profile, done) => {
-  console.log('==============================Google Signup React================================');
   let user = [
     profile.id,
     profile.displayName,
@@ -52,7 +51,6 @@ passport.use('google-signup-react', new GoogleStrategy({
     .then(response=>{
       data = Buffer.from(response.data, 'binary').toString('base64');
       q = `INSERT INTO images(user_id,image) VALUES($1,$2) ON CONFLICT (user_id) DO UPDATE SET image = ($2)`
-      
       connect.query(q,[results.rows[0].user_id,data],(err,r)=>{
         if(err) console.log(err);
       })
@@ -68,7 +66,6 @@ passport.use('google-login-react', new GoogleStrategy({
   ...googleConfig,
   callbackURL : url + '/google-react/logininfo'
 }, (a, r, profile, done) => {
-  console.log('==============================Google Login React================================');
   let q = 'SELECT * FROM users WHERE google_id = $1'
   connect.query(q,[profile.id],(err,results) => {
     if(err){console.log(err);return done(new Error("Internal Error"),false);}
@@ -102,7 +99,6 @@ passport.use('facebook-signup-react',new FacebookStrategy({
   callbackURL : url + '/facebook-react/info',
   profileFields: ['id', 'displayName', 'name', 'gender', 'picture.type(normal)']
 },(a, r, profile, done) => {
-  console.log('==============================Facebook Signup React================================');
   var email = null;
   try{
     email = profile.emails[0].value
@@ -141,7 +137,6 @@ passport.use('facebook-login-react',new FacebookStrategy({
   callbackURL : url + '/facebook-react/logininfo',
   profileFields: ['id', 'displayName', 'name', 'gender', 'picture.type(normal)']
 },(a, r, profile, done) => {
-  console.log('==============================Facebook Login React================================');
   let q = 'SELECT * FROM users WHERE facebook_id = $1'
   connect.query(q,[profile.id],(err,results) => {
     if(err){console.log(err);return done(new Error("Internal Error"),false);}
