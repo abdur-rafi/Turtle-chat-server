@@ -9,56 +9,30 @@ const passport = require('passport'),
     GoogleStrategy = require('passport-google-oauth20').Strategy,
     FacebookStrategy = require('passport-facebook').Strategy
 
-passport.use('google-signup', new GoogleStrategy({
-  clientID : "564520619729-u3bqt4oeoj5radm6sv36j3hqk2puq9i3.apps.googleusercontent.com",
-  clientSecret : "lfyJePQZuYslV32BgkxGZwbV",callbackURL : url + '/google/info'
-}, (a, r, profile, done) => {
-  let user = [
-    profile.id,
-    profile.displayName,
-    profile.emails[0].value,
-    profile.name.givenName,
-    profile.name.familyName
-  ]
-  let q = 'INSERT INTO users(google_id,username,email,firstname,lastname,created_at) VALUES ($1,$2,$3,$4,$5,NOW())'
-  connect.query(q,user,(err,results) => {
-    if(err){console.log(err);return done(err,null);}
-    return done(null,{
-      ...user,
-      user_id : results.insertId
-    });
-  })
-}))
+let googleConfig = {}, facebookConfig = {};
+if(process.env.DEVELOPMENT){
+  let config = require('./config');
+  googleConfig = {
+    ...config.googleConfig
+  }
+  facebookConfig = {
+    ...config.facebookConfig
+  }
+}
+else{
+  googleConfig = {
+    clientID : process.env.googleClientId,
+    clientSecret : process.env.googleClientSecret
+  }
+  facebookConfig = {
+    clientID : process.env.facebookClientId,
+    clientSecret : process.env.facebookClientSecret
+  }
+}
 
-
-
-passport.use('google-login', new GoogleStrategy({
-  clientID : "564520619729-u3bqt4oeoj5radm6sv36j3hqk2puq9i3.apps.googleusercontent.com",
-  clientSecret : "lfyJePQZuYslV32BgkxGZwbV",
-  callbackURL : url + '/google/logininfo'
-}, (a, r, profile, done) => {
-  console.log('==============================Google Login================================');
-  let q = 'SELECT * FROM users WHERE google_id = ?'
-  connect.query(q,profile.id,(err,results) => {
-    if(err){console.log(err);return done(new Error("Internal Error"),false);}
-    if(results.length === 0){
-      let error = new Error("Users not found");
-      error.status = 404;
-      return done(error,false);
-    }
-    return done(null,{
-      user_id : results[0]['user_id'],
-      firstname : results[0]['firstname'],
-      lastname : results[0]['lastname'],
-      email : results[0]['email'],
-      username : results[0]['username']
-    });
-  })
-}))
 
 passport.use('google-signup-react', new GoogleStrategy({
-  clientID : "564520619729-u3bqt4oeoj5radm6sv36j3hqk2puq9i3.apps.googleusercontent.com",
-  clientSecret : "lfyJePQZuYslV32BgkxGZwbV",
+  ...googleConfig,
   callbackURL : url + '/google-react/info'
 }, (a, r, profile, done) => {
   console.log('==============================Google Signup React================================');
@@ -91,8 +65,7 @@ passport.use('google-signup-react', new GoogleStrategy({
 }))
 
 passport.use('google-login-react', new GoogleStrategy({
-  clientID : "564520619729-u3bqt4oeoj5radm6sv36j3hqk2puq9i3.apps.googleusercontent.com",
-  clientSecret : "lfyJePQZuYslV32BgkxGZwbV",
+  ...googleConfig,
   callbackURL : url + '/google-react/logininfo'
 }, (a, r, profile, done) => {
   console.log('==============================Google Login React================================');
@@ -125,8 +98,7 @@ passport.use('google-login-react', new GoogleStrategy({
 }))
 
 passport.use('facebook-signup-react',new FacebookStrategy({
-  clientID : "871810780255994",
-  clientSecret : "2846c0a6c3e45841ad2973201fd6a1d3",
+  ...facebookConfig,
   callbackURL : url + '/facebook-react/info',
   profileFields: ['id', 'displayName', 'name', 'gender', 'picture.type(normal)']
 },(a, r, profile, done) => {
@@ -165,19 +137,11 @@ passport.use('facebook-signup-react',new FacebookStrategy({
 }))
 
 passport.use('facebook-login-react',new FacebookStrategy({
-  clientID : "871810780255994",
-  clientSecret : "2846c0a6c3e45841ad2973201fd6a1d3",
+  ...facebookConfig,
   callbackURL : url + '/facebook-react/logininfo',
   profileFields: ['id', 'displayName', 'name', 'gender', 'picture.type(normal)']
 },(a, r, profile, done) => {
   console.log('==============================Facebook Login React================================');
-  // let user = {
-  //   facebook_id : profile.id,
-  //   username : profile.displayName,
-  //   email : email,
-  //   firstname : profile.name.givenName,
-  //   lastname : profile.name.familyName
-  // }
   let q = 'SELECT * FROM users WHERE facebook_id = $1'
   connect.query(q,[profile.id],(err,results) => {
     if(err){console.log(err);return done(new Error("Internal Error"),false);}

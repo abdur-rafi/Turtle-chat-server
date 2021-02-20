@@ -1,14 +1,10 @@
 var express = require('express');
 var router = express.Router();
 var connect = require('../sql');
-var passport = require('passport');
 var auth = require('../auth');
 var cors = require('../cors');
 var socketList = require('../sockets');
 var newGroups = require('../newgroups');
-var friendRequest = {
-    
-}
 
 router.route('/')
 .options(cors.corsWithOptions,(req,res) => {res.sendStatus(200);})
@@ -49,7 +45,6 @@ router.route('/')
             }
             let i = 0;
             for(i = 0;i < results.rows.length;++i){
-                // console.log(results.rows[i]);
                 results.rows[i]['bold'] = false;
                 if(results.rows[i]['lastmessageid'] !== results.rows[i]['userlastseen']){
                     results.rows[i]['bold'] = true;
@@ -64,7 +59,6 @@ router.route('/')
                 else results.rows[i]['active'] = false;
                 if(results.rows[i]['req'] === 2){
                     done.push(i);
-                    // console.log(done);
                     q = `SELECT members.user_id, users.username,images.image
                         FROM members
                         JOIN users ON users.user_id = members.user_id
@@ -73,10 +67,7 @@ router.route('/')
                     let index = i;
                     connect.query(q,[results.rows[index]['group_id']],(err,result)=>{
                         if(err){console.log(err);return next(err)}
-                        // console.log("results[i].rows =",i);
                         results.rows[index]['group_members'] = result.rows;
-                        // console.log(result.rows);
-                        // console.log(done);
                         done = done.filter(ind => ind !== index);
                         if(loopComplete && done.length === 0 && !response_sent){
                             response_sent = true;
@@ -95,7 +86,6 @@ router.route('/')
                 username:req.user.username,
                 image:img
             }
-            // console.log("done.length = ",done.length)
             if(done.length === 0 && !response_sent){
                 response_sent = true;
                 res.status(200).json({
