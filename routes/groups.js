@@ -1,13 +1,11 @@
 var express = require('express');
 var router = express.Router();
 var connect = require('../sql');
-var bcrypt = require('bcryptjs');
 var passport = require('passport');
 var auth = require('../auth');
 var cors = require('../cors');
 var socketList = require('../sockets');
 var newGroups = require('../newgroups');
-var format = require('pg-format');
 var friendRequest = {
     
 }

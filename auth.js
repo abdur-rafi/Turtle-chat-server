@@ -1,14 +1,13 @@
 require('dotenv').config();
 let url = 'https://turtle-chat-server.herokuapp.com';
-if(process.env.PRODUCTION === 'TRUE'){
+if(process.env.DEVELOPMENT === 'TRUE'){
   url = 'http://localhost:3000';
 }
 const connect = require("./sql");
 const axios = require('axios');
 const passport = require('passport'),
     GoogleStrategy = require('passport-google-oauth20').Strategy,
-    FacebookStrategy = require('passport-facebook').Strategy,
-    format = require('pg-format');
+    FacebookStrategy = require('passport-facebook').Strategy
 
 passport.use('google-signup', new GoogleStrategy({
   clientID : "564520619729-u3bqt4oeoj5radm6sv36j3hqk2puq9i3.apps.googleusercontent.com",

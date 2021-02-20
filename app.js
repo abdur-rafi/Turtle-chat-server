@@ -12,16 +12,9 @@ var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var notificationRouter = require('./routes/notifications');
 var groupRouter = require('./routes/groups');
-var googleRouter = require('./routes/google');
 var requestRouter = require('./routes/requests');
-var facebookRouter = require('./routes/facebook');
 var facebookReactRouter = require('./routes/facebook-react');
 var googleReactRouter = require('./routes/google-react');
-
-
-
-var connect = require('./sql');
-const auth = require('./auth');
 
 var app = express();
 var io = socketio();
@@ -38,20 +31,28 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
 
+let keys = [];
 
+if(process.env.DEVELOPMENT === 'TRUE'){
+  let config = require('./config');
+  keys = [config.sessionKeyConfig['key1'],config.sessionKeyConfig['key2']]
+}
+else{
+  keys = [process.env.session_key_1,process.env.session_key_2]
+}
 
 var sess = {
   name : 'turtle-chat-01',
   maxAge: 4 * 1000 * 60 * 60 ,
   expires: 4 * 1000 * 60 * 60,
-  keys : ['lN9U-6f%yXoi2|zayO!5|^Z8','aV67cxJLQjUmbivK']
+  keys : keys
 }
 
  
 var cookieConfig = {
   ...sess
 }
-if(process.env.PRODUCTION !== 'TRUE'){
+if(process.env.DEVELOPMENT !== 'TRUE'){
   app.set('trust proxy', 1);
   cookieConfig = {
     ...cookieConfig,
@@ -87,10 +88,8 @@ app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/notifications',notificationRouter);
 app.use('/groups',groupRouter);
-app.use('/google',googleRouter);
 app.use('/google-react',googleReactRouter);
 app.use('/requests',requestRouter);
-app.use('/facebook',facebookRouter);
 app.use('/facebook-react',facebookReactRouter);
 app.use(express.static(path.join(__dirname, 'public')));
 
