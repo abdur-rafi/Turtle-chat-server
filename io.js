@@ -2,7 +2,17 @@ var connect = require('./sql');
 var socketList = require('./sockets');
 var newGroups = require('./newgroups');
 var jwt = require('jsonwebtoken');
-var config = require('./config')
+
+let jwtKey = '';
+if(process.env.DEVELOPMENT){
+    var config = require('../config');
+    jwtKey =  config.jsonConfig['key'];
+}
+else{
+    jwtKey = process.env.KEY;
+}
+
+
 function socket_io(io){
     io.on('connection',(socket)=>{
         let user_id = -1, groups = [];
@@ -13,7 +23,7 @@ function socket_io(io){
             // console.log(err);
             try{
                 if(socket.handshake.query && socket.handshake.query.token){
-                    let user = jwt.verify(socket.handshake.query.token,config.jsonConfig['key']);
+                    let user = jwt.verify(socket.handshake.query.token,jwtKey);
                     console.log(user);
                     user_id = user.user_id;
                 }
