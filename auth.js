@@ -11,10 +11,9 @@ const axios = require('axios');
 const passport = require('passport'),
     GoogleStrategy = require('passport-google-oauth20').Strategy,
     FacebookStrategy = require('passport-facebook').Strategy,
-    jwt = require('jsonwebtoken'),
-    config = require('./config');
+    jwt = require('jsonwebtoken');
 
-let googleConfig = {}, facebookConfig = {};
+let googleConfig = {}, facebookConfig = {} ,jwtKey = '';
 if(process.env.DEVELOPMENT){
   let config = require('./config');
   googleConfig = {
@@ -23,6 +22,7 @@ if(process.env.DEVELOPMENT){
   facebookConfig = {
     ...config.facebookConfig
   }
+  jwtKey = config.jsonConfig['key'];
 }
 else{
   googleConfig = {
@@ -33,6 +33,7 @@ else{
     clientID : process.env.facebookClientId,
     clientSecret : process.env.facebookClientSecret
   }
+  jwtKey = process.env.KEY;
 }
 
 
@@ -201,7 +202,7 @@ const isAuthenticated = (req, res, next) => {
   if(token){
     try{
       console.log(token);
-      let user = jwt.verify(token,config.jsonConfig['key']);
+      let user = jwt.verify(token,jwtKey);
       console.log(user);
       req.user = user;
       return next();
