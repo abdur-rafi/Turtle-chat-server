@@ -13,11 +13,13 @@ router.route('/')
     requests.group_id,requests.from_user_id as name_user_id,
     users.username as group_user_name,
     images.image,
-    messages.message,messages.message_id as lastmessageid,messages.user_id as last_message_user_id
+    messages.message,messages.message_id as lastmessageid,messages.user_id as last_message_user_id,
+    mgroups.last_time
   FROM
     requests
   JOIN users ON requests.from_user_id=users.user_id
   JOIN images ON images.user_id = requests.from_user_id
+  JOIN mgroups ON requests.group_id = mgroups.group_id 
   LEFT JOIN members ON requests.from_user_id=members.user_id AND requests.group_id=members.group_id
   LEFT JOIN messages ON members.lastMessage=messages.message_id
   WHERE requests.to_user_id=$1`

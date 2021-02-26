@@ -5,7 +5,7 @@ var jwt = require('jsonwebtoken');
 
 let jwtKey = '';
 if(process.env.DEVELOPMENT){
-    var config = require('../config');
+    var config = require('./config');
     jwtKey =  config.jsonConfig['key'];
 }
 else{

@@ -15,7 +15,7 @@ router.route('/')
             members.group_id,members.lastSeen as userlastSeen,members.lastMessage as lastMessageId,
             members.name_user_id,members.req,
             members2.lastSeen,users.username as group_user_name,
-            mgroups.name as group_name ,mgroups.last_time,
+            mgroups.last_time,
             images.image,messages.message,messages.user_id as last_message_user_id 
         FROM 
             members members
