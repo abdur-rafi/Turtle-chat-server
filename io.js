@@ -1,23 +1,35 @@
 var connect = require('./sql');
 var socketList = require('./sockets');
 var newGroups = require('./newgroups');
+var jwt = require('jsonwebtoken');
+var config = require('./config')
 function socket_io(io){
     io.on('connection',(socket)=>{
         let user_id = -1, groups = [];
         try{
             user_id = socket.handshake.session.passport.user;
         }
-        catch(err){console.log(err);return;}
+        catch(err){
+            // console.log(err);
+            try{
+                if(socket.handshake.query && socket.handshake.query.token){
+                    let user = jwt.verify(socket.handshake.query.token,config.jsonConfig['key']);
+                    console.log(user);
+                    user_id = user.user_id;
+                }
+                // console.log(socket.handshake.query);
+            }
+            catch(err){
+                return;
+            }
+        }
         newGroups[user_id] = (new_group,user_id)=>{
             groups.push({group_id: new_group,user_id : user_id});
         }
-        console.log( "user_id socket : " + socketList.sockets[user_id]);
         if( socketList.sockets[user_id] ){      
             io.to(socketList.sockets[user_id]).emit('new-login-detected',{user_id : user_id});
-            console.log("here in old socketList function")
         }
         socketList.sockets[user_id] = socket.id;
-        // console.log("io",socketList);
         q = 'SELECT group_id,users.user_id FROM members JOIN users ON members.name_user_id=users.user_id WHERE members.user_id = $1';
         connect.query(q,[user_id],(err,results) => {
             if(err){console.log(err);return;}
@@ -78,7 +90,6 @@ function socket_io(io){
 
         socket.on('disconnect',(socket) => {
             // delete socketList.sockets[user_id];
-            
             groups.forEach(group=>{
                 if(socketList.sockets[group.user_id]){
                     io.to(socketList.sockets[group.user_id]).emit('new-inactive',{user_id:user_id,group_id : group.group_id})

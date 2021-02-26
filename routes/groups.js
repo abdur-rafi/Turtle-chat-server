@@ -141,9 +141,21 @@ router.route('/:group_id')
     }
     let group_id = req.params.group_id;
     let user_id = req.user.user_id;
-    if(typeof(group_id) === "string" && group_id.substring(0,7)==='request'){
-        group_id = group_id.substring(7);
-        group_id = parseInt(group_id);
+    if((typeof(group_id) === "string" && group_id.substring(0,7)==='request') || parseInt(group_id) < 0){
+        console.log("here")
+        if( group_id.substring(0,7)==='request'){
+            group_id = group_id.substring(7);
+            group_id = parseInt(group_id);
+        }
+        else{
+            console.log(group_id, "type", typeof(group_id))
+            group_id = parseInt(group_id);
+            group_id = (-1) * group_id;
+        }
+
+        console.log( "grou[_id", group_id);
+        console.log("user_id",req.user.user_id);
+        
         q = `SELECT * FROM createGroupInsertMessage($1,$2,$3)`
         connect.query(q,[user_id,group_id,message],(err,result)=>{
             if(err){console.log(err);return next(err)}
@@ -193,7 +205,7 @@ router.route('/:group_id')
                 group_id : group_id,
                 username : req.user.username,
                 message : message,
-                sent_at : Date.now(),
+                sent_at : Date().toString(),
                 message_id : message_id,
                 user_id : user_id
             }

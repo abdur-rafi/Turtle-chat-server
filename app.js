@@ -15,11 +15,11 @@ var groupRouter = require('./routes/groups');
 var requestRouter = require('./routes/requests');
 var facebookReactRouter = require('./routes/facebook-react');
 var googleReactRouter = require('./routes/google-react');
-
+var googleReactNativeRouter = require('./routes/google-react-native');
 var app = express();
 var io = socketio();
 app.io = io;
-
+app.disable('etag');
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -33,7 +33,7 @@ app.use(cookieParser());
 
 let keys = [];
 
-if(process.env.DEVELOPMENT === 'TRUE'){
+if(process.env.DEVELOPMENT){
   let config = require('./config');
   keys = [config.sessionKeyConfig['key1'],config.sessionKeyConfig['key2']]
 }
@@ -52,7 +52,7 @@ var sess = {
 var cookieConfig = {
   ...sess
 }
-if(process.env.DEVELOPMENT !== 'TRUE'){
+if(!process.env.DEVELOPMENT){
   app.set('trust proxy', 1);
   cookieConfig = {
     ...cookieConfig,
@@ -89,6 +89,7 @@ app.use('/users', usersRouter);
 app.use('/notifications',notificationRouter);
 app.use('/groups',groupRouter);
 app.use('/google-react',googleReactRouter);
+app.use('/google-react-native',googleReactNativeRouter);
 app.use('/requests',requestRouter);
 app.use('/facebook-react',facebookReactRouter);
 app.use(express.static(path.join(__dirname, 'public')));

@@ -47,6 +47,7 @@ router
     failureRedirect : '/google-react/fail'
 }),(req,res,next)=>{
     res.status(200).end("Login successful. Close the tab/window to proceed with the application");
+    // res.redirect("msrm42app://msrm42app.io?id=" + req.user.user_id);
 })
 
 module.exports = router;
