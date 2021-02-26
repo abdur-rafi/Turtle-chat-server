@@ -9,7 +9,7 @@ if(process.env.DEVELOPMENT){
     jwtKey =  config.jsonConfig['key'];
 }
 else{
-    jwtKey = process.env.KEY;
+    jwtKey = process.env.jwtKey;
 }
 
 

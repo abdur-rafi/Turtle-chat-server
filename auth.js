@@ -33,7 +33,8 @@ else{
     clientID : process.env.facebookClientId,
     clientSecret : process.env.facebookClientSecret
   }
-  jwtKey = process.env.KEY;
+  jwtKey = process.env.jwtKey;
+  console.log(jwtKey);
 }
 
 
