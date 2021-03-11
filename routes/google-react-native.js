@@ -26,7 +26,7 @@ router
 .get(cors.corsWithOptions,passport.authenticate('google-signup-react-native',{
     failureRedirect : '/google-react-native/fail'
 }),(req,res,next)=>{
-    console.log(req.user);
+    // console.log(req.user);
     let token = jwt.sign(req.user,jwtKey);
     res.redirect("msrm42app://msrm42app.io?id=" + token);
     // res.status(200).end(". Close the tab/window to proceed with the application");
@@ -60,7 +60,7 @@ router
     failureRedirect : '/google-react-native/fail'
 }),(req,res,next)=>{
     // res.status(200).end("Login successful. Close the tab/window to proceed with the application");
-    console.log(req.user);
+    // console.log(req.user);
     let token = jwt.sign(req.user,jwtKey);
     res.redirect("msrm42app://msrm42app.io?id=" + token);
 })

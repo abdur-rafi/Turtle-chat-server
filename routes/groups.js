@@ -143,19 +143,19 @@ router.route('/:group_id')
     let group_id = req.params.group_id;
     let user_id = req.user.user_id;
     if((typeof(group_id) === "string" && group_id.substring(0,7)==='request') || parseInt(group_id) < 0){
-        console.log("here")
+        // console.log("here")
         if( group_id.substring(0,7)==='request'){
             group_id = group_id.substring(7);
             group_id = parseInt(group_id);
         }
         else{
-            console.log(group_id, "type", typeof(group_id))
+            // console.log(group_id, "type", typeof(group_id))
             group_id = parseInt(group_id);
             group_id = (-1) * group_id;
         }
 
-        console.log( "grou[_id", group_id);
-        console.log("user_id",req.user.user_id);
+        // console.log( "grou[_id", group_id);
+        // console.log("user_id",req.user.user_id);
         
         q = `SELECT * FROM createGroupInsertMessage($1,$2,$3)`
         connect.query(q,[user_id,group_id,message],(err,result)=>{
@@ -211,7 +211,7 @@ router.route('/:group_id')
                 user_id : user_id
             }
             let isGroup = result.rows[0]['req_'] === 2;
-            console.log(isGroup);
+            // console.log(isGroup);
             if(!isGroup){
                 if( activeUsers.activeUsers[name_user_id] && socketList.sockets[name_user_id]) req.io.to(socketList.sockets[name_user_id]).emit('new-message',message_io)
             }
@@ -255,7 +255,7 @@ router.route('/:group_id/addmembers')
         if(i != new_members.length-1) new_members_str +=',';
     }
     new_members_str += '}'
-    console.log(new_members_str);
+    // console.log(new_members_str);
     connect.query(q,[req.user.user_id,req.params.group_id,new_members,new_members.length,new_members_str]
         ,(err,result)=>{
             if(err){console.log(err);return next(err)}

@@ -34,7 +34,6 @@ else{
     clientSecret : process.env.facebookClientSecret
   }
   jwtKey = process.env.jwtKey;
-  console.log(jwtKey);
 }
 
 
@@ -202,7 +201,7 @@ const isAuthenticated = (req, res, next) => {
   // console.log(token);
   if(token){
     try{
-      console.log(token);
+      console.log( "TOKEN       ", token);
       let user = jwt.verify(token,jwtKey);
       console.log(user);
       req.user = user;

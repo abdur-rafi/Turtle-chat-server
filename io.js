@@ -25,7 +25,7 @@ function socket_io(io){
             try{
                 if(socket.handshake.query && socket.handshake.query.token){
                     let user = jwt.verify(socket.handshake.query.token,jwtKey);
-                    console.log(user);
+                    // console.log(user);
                     user_id = user.user_id;
                 }
                 // console.log(socket.handshake.query);
