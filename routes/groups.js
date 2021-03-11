@@ -5,6 +5,7 @@ var auth = require('../auth');
 var cors = require('../cors');
 var socketList = require('../sockets');
 var newGroups = require('../newgroups');
+var activeUsers = require('../activeUsers');
 
 router.route('/')
 .options(cors.corsWithOptions,(req,res) => {res.sendStatus(200);})
@@ -49,7 +50,7 @@ router.route('/')
                 if(results.rows[i]['lastmessageid'] !== results.rows[i]['userlastseen']){
                     results.rows[i]['bold'] = true;
                 }
-                if(!results.rows[i].req && socketList.sockets[results.rows[i]['name_user_id']]){
+                if(!results.rows[i].req && activeUsers.activeUsers[results.rows[i]['name_user_id']]){
                     results.rows[i]['active'] = true;
                     req.io.to(socketList.sockets[results.rows[i]['name_user_id']])
                     .emit('new-active',{
@@ -163,7 +164,7 @@ router.route('/:group_id')
             let image = result.rows[0]['image_']
             let lastmessageid = result.rows[0]['message_id_']
             if(newGroups[req.user.user_id]) newGroups[user_id](created_group_id,group_id);
-            if(socketList.sockets[group_id]){ 
+            if( activeUsers.activeUsers[group_id] && socketList.sockets[group_id]){ 
                 req.io.to(socketList.sockets[group_id])
                 .emit('new-request',{
                     group_id : created_group_id,
@@ -212,14 +213,14 @@ router.route('/:group_id')
             let isGroup = result.rows[0]['req_'] === 2;
             console.log(isGroup);
             if(!isGroup){
-                if(socketList.sockets[name_user_id]) req.io.to(socketList.sockets[name_user_id]).emit('new-message',message_io)
+                if( activeUsers.activeUsers[name_user_id] && socketList.sockets[name_user_id]) req.io.to(socketList.sockets[name_user_id]).emit('new-message',message_io)
             }
             else{
                 q = `SELECT user_id FROM members WHERE group_id = $1 AND user_id != $2`
                 connect.query(q,[group_id,req.user.user_id],(err,result)=>{
                     if(err){console.log(err);return next(err)}
                     result.rows.forEach(row=>{
-                        if(socketList.sockets[row['user_id']]){
+                        if( activeUsers.activeUsers[row['user_id']] && socketList.sockets[row['user_id']]){
                             req.io.to(socketList.sockets[row['user_id']]).emit('new-message',message_io);
                         }
                     });
@@ -289,7 +290,7 @@ router.route('/:group_id/addmembers')
             }
             res.status(200).json({group_members: group_members});
             old_members.forEach(member =>{
-                if(socketList.sockets[member]){
+                if( activeUsers.activeUsers[member] && socketList.sockets[member]){
                     req.io.to(socketList.sockets[member]).emit('update-group-members',{
                         group_members: group_members,
                         group_id : parseInt(req.params.group_id)
@@ -297,7 +298,7 @@ router.route('/:group_id/addmembers')
                 }
             })
             new_members.forEach(member=>{
-                if(socketList.sockets[member]){
+                if( activeUsers.activeUsers[member] && socketList.sockets[member]){
                     req.io.to(socketList.sockets[member]).emit('new-group',group);
                 }
             })

@@ -5,6 +5,7 @@ var auth = require('../auth');
 var cors = require('../cors');
 var socketList = require('../sockets');
 var newGroups = require('../newgroups');
+var activeUsers = require('../activeUsers');
 
 router.route('/')
 .options(cors.corsWithOptions,(req,res) => {res.sendStatus(200);})
@@ -61,7 +62,7 @@ router.route('/accept/:group_id')
       group_id: parseInt(req.params.group_id),
       active : socketList.sockets[from_user_id] ? true : false
     })
-    if(socketList.sockets[from_user_id]){
+    if(activeUsers.activeUsers[from_user_id] && socketList.sockets[from_user_id]){
         req.io.to(socketList.sockets[from_user_id]).emit('new-active',{user_id:req.user.user_id})
     }
 

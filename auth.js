@@ -147,7 +147,7 @@ passport.use('facebook-login-react',new FacebookStrategy({
   let q = 'SELECT * FROM users WHERE facebook_id = $1'
   connect.query(q,[profile.id],(err,results) => {
     if(err){console.log(err);return done(new Error("Internal Error"),false);}
-    if(results.length === 0){
+    if(results.rows.length === 0){
       let error = new Error("Users not found");
       error.status = 404;
       return done(error,false);
@@ -279,6 +279,78 @@ passport.use('google-login-react-native', new GoogleStrategy({
     });
   })
 }))
+
+
+passport.use('facebook-signup-react-native',new FacebookStrategy({
+  ...facebookConfig,
+  callbackURL : url + '/facebook-react-native/info',
+  profileFields: ['id', 'displayName', 'name', 'gender', 'picture.type(normal)']
+},(a, r, profile, done) => {
+  var email = null;
+  try{
+    email = profile.emails[0].value
+  } catch(err){
+    console.log(err);
+  }
+  let user = {
+    facebook_id : profile.id,
+    username : profile.displayName,
+    email : email,
+    firstname : profile.name.givenName,
+    lastname : profile.name.familyName
+  }
+  let q = `INSERT INTO users(facebook_id,username,email,firstname,lastname,created_at) 
+        VALUES($1,$2,$3,$4,$5,NOW()) RETURNING user_id`
+  connect.query(q,[profile.id,profile.displayName,email,profile.name.givenName,profile.name.familyName],(err,results) => {
+    if(err){console.log(err);return done(err,null);}
+    let imgUrl = profile['photos'][0].value
+    axios.get(imgUrl,{responseType: 'arraybuffer'})
+    .then(response=>{
+      data = Buffer.from(response.data, 'binary').toString('base64');
+      q = `INSERT INTO images(user_id,image) VALUES($1,$2) ON CONFLICT (user_id) DO UPDATE SET image = ($2)`
+      connect.query(q,[results.rows[0]['user_id'],data],(err,r)=>{
+        if(err) console.log(err);
+      })
+    });
+    return done(null,{
+      ...user,
+      user_id : results.rows[0]['user_id']
+    });
+  })
+}))
+
+passport.use('facebook-login-react-native',new FacebookStrategy({
+  ...facebookConfig,
+  callbackURL : url + '/facebook-react-native/logininfo',
+  profileFields: ['id', 'displayName', 'name', 'gender', 'picture.type(normal)']
+},(a, r, profile, done) => {
+  let q = 'SELECT * FROM users WHERE facebook_id = $1'
+  connect.query(q,[profile.id],(err,results) => {
+    if(err){console.log(err);return done(new Error("Internal Error"),false);}
+    if(results.rows.length === 0){
+      let error = new Error("Users not found");
+      error.status = 404;
+      return done(error,false);
+    }
+    let imgUrl = profile['photos'][0].value
+    axios.get(imgUrl,{responseType: 'arraybuffer'})
+    .then(response=>{
+      data = Buffer.from(response.data, 'binary').toString('base64');
+      q = `INSERT INTO images(user_id,image) VALUES($1,$2) ON CONFLICT (user_id) DO UPDATE SET image = ($2)`
+      connect.query(q,[results[0]['user_id'],data],(err,r)=>{
+        if(err) console.log(err);
+      })
+    });
+    return done(null,{
+      user_id : results.rows[0]['user_id'],
+      firstname : results.rows[0]['firstname'],
+      lastname : results.rows[0]['lastname'],
+      email : results.rows[0]['email'],
+      username : results.rows[0]['username']
+    });
+  })
+}))
+
 
 
 

@@ -2,6 +2,7 @@ var connect = require('./sql');
 var socketList = require('./sockets');
 var newGroups = require('./newgroups');
 var jwt = require('jsonwebtoken');
+var activeUsers = require('./activeUsers');
 
 let jwtKey = '';
 if(process.env.DEVELOPMENT){
@@ -39,6 +40,7 @@ function socket_io(io){
         if( socketList.sockets[user_id] ){      
             io.to(socketList.sockets[user_id]).emit('new-login-detected',{user_id : user_id});
         }
+        activeUsers.activeUsers[user_id] = true;
         socketList.sockets[user_id] = socket.id;
         q = 'SELECT group_id,users.user_id FROM members JOIN users ON members.name_user_id=users.user_id WHERE members.user_id = $1';
         connect.query(q,[user_id],(err,results) => {
@@ -61,14 +63,14 @@ function socket_io(io){
 
         socket.on('voice-call',(data)=>{
             if(groups.some(group => group.group_id === data.group_id && group.user_id === data.user_id)){
-                if(socketList.sockets[data.user_id]){
+                if(activeUsers.activeUsers[data.user_id] &&  socketList.sockets[data.user_id]){
                     io.to(socketList.sockets[data.user_id]).emit('voice-call-request',{user_id:user_id,group_id:data.group_id,peerId:data.peerId});
                 }
             }
         })
 
         socket.on('voice-call-request-accept',data=>{
-            if(socketList.sockets[data.user_id]){
+            if( activeUsers.activeUsers[data.user_id] && socketList.sockets[data.user_id]){
                 io.to(socketList.sockets[data.user_id]).emit('call-receiver-id',{peerId:data.peerId,user_id:user_id});
             }
         })
@@ -84,7 +86,7 @@ function socket_io(io){
             io.to(socketList.sockets[data.receiver]).emit('icecandidate',{candidate:data.candidate})
         })
         socket.on('close-call',data=>{
-            if(socketList.sockets[data.receiver]){
+            if( activeUsers.activeUsers[data.receiver] && socketList.sockets[data.receiver]){
                 io.to(socketList.sockets[data.receiver]).emit('close-call',{sender:user_id});
             }
         })
@@ -101,7 +103,7 @@ function socket_io(io){
         socket.on('disconnect',(socket) => {
             // delete socketList.sockets[user_id];
             groups.forEach(group=>{
-                if(socketList.sockets[group.user_id]){
+                if(activeUsers.activeUsers[group.user_id] && socketList.sockets[group.user_id]){
                     io.to(socketList.sockets[group.user_id]).emit('new-inactive',{user_id:user_id,group_id : group.group_id})
                 }
             })
