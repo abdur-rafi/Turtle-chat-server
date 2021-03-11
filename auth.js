@@ -157,7 +157,7 @@ passport.use('facebook-login-react',new FacebookStrategy({
     .then(response=>{
       data = Buffer.from(response.data, 'binary').toString('base64');
       q = `INSERT INTO images(user_id,image) VALUES($1,$2) ON CONFLICT (user_id) DO UPDATE SET image = ($2)`
-      connect.query(q,[results[0]['user_id'],data],(err,r)=>{
+      connect.query(q,[results.rows[0]['user_id'],data],(err,r)=>{
         if(err) console.log(err);
       })
     });
@@ -337,7 +337,7 @@ passport.use('facebook-login-react-native',new FacebookStrategy({
     .then(response=>{
       data = Buffer.from(response.data, 'binary').toString('base64');
       q = `INSERT INTO images(user_id,image) VALUES($1,$2) ON CONFLICT (user_id) DO UPDATE SET image = ($2)`
-      connect.query(q,[results[0]['user_id'],data],(err,r)=>{
+      connect.query(q,[results.rows[0]['user_id'],data],(err,r)=>{
         if(err) console.log(err);
       })
     });
