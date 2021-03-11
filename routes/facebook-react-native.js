@@ -27,8 +27,9 @@ router
 .get(cors.corsWithOptions,passport.authenticate('facebook-signup-react-native',{
     failureRedirect : '/facebook-react-native/fail'
 }),(req,res,next)=>{
-    // console.log(req.user);
     let token = jwt.sign(req.user,jwtKey);
+    console.log("GIVEN TOKEN TO users", token);
+
     res.redirect("msrm42app://msrm42app.io?id=" + token);
     // res.status(200).end(". Close the tab/window to proceed with the application");
 })
@@ -63,6 +64,7 @@ router
     // res.status(200).end("Login successful. Close the tab/window to proceed with the application");
     // console.log(req.user);
     let token = jwt.sign(req.user,jwtKey);
+    console.log("GIVEN TOKEN TO users", token);
     res.redirect("msrm42app://msrm42app.io?id=" + token);
 })
 

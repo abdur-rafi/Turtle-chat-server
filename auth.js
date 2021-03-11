@@ -201,7 +201,7 @@ const isAuthenticated = (req, res, next) => {
   // console.log(token);
   if(token){
     try{
-      console.log( "TOKEN       ", token);
+      console.log( " RECIEVED  TOKEN FROM USER       ", token);
       let user = jwt.verify(token,jwtKey);
       console.log(user);
       req.user = user;
