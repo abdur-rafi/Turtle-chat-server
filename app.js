@@ -16,6 +16,7 @@ var requestRouter = require('./routes/requests');
 var facebookReactRouter = require('./routes/facebook-react');
 var googleReactRouter = require('./routes/google-react');
 var googleReactNativeRouter = require('./routes/google-react-native');
+var facebookReactNativeRouter = require('./routes/facebook-react-native');
 var app = express();
 var io = socketio();
 app.io = io;
@@ -92,6 +93,7 @@ app.use('/google-react',googleReactRouter);
 app.use('/google-react-native',googleReactNativeRouter);
 app.use('/requests',requestRouter);
 app.use('/facebook-react',facebookReactRouter);
+app.use('/facebook-react-native',facebookReactNativeRouter);
 app.use(express.static(path.join(__dirname, 'public')));
 
 
