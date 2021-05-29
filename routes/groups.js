@@ -1,11 +1,16 @@
 var express = require('express');
+var fs = require('fs')
 var router = express.Router();
 var connect = require('../sql');
 var auth = require('../auth');
+
 var cors = require('../cors');
 var socketList = require('../sockets');
 var newGroups = require('../newgroups');
 var activeUsers = require('../activeUsers');
+
+const defaultGroupImage = fs.readFileSync('./public/images/default_group.png', {encoding: 'base64'});
+// console.log(contents)
 
 router.route('/')
 .options(cors.corsWithOptions,(req,res) => {res.sendStatus(200);})
@@ -103,8 +108,11 @@ router.route('/')
 router.route('/newgroup')
 .options(cors.corsWithOptions,(req,res) => {res.sendStatus(200);})
 .post(cors.corsWithOptions,auth.isAuthenticated,(req,res,next)=>{
-    if(!req.body.group_name || !req.body.group_image){
-        res.status(400).json({message : "group_name or image is not set"});
+    if(!req.body.group_image){
+        req.body.group_image = defaultGroupImage;
+    }
+    if(!req.body.group_name){
+        res.status(400).json({message : "group_name is not set"});
         return;
     }
     let q = 'SELECT * FROM createGroup($1,$2,$3)'
