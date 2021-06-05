@@ -263,7 +263,7 @@ router.route('/:group_id/addmembers')
         if(i != new_members.length-1) new_members_str +=',';
     }
     new_members_str += '}'
-    // console.log(new_members_str);
+    // console.log(new_members_str);da
     connect.query(q,[req.user.user_id,req.params.group_id,new_members,new_members.length,new_members_str]
         ,(err,result)=>{
             if(err){console.log(err);return next(err)}
